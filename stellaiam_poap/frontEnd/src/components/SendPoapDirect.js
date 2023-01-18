@@ -19,6 +19,7 @@ const SendPoapDirect = ()=>{
     const [isMultiple, setIsMultiple] = useState(false);
     const [address, setAddress] = useState("");
     const [addressFile, setAddressFile] = useState(null);
+    const [howMany, setHowMany] = useState(0);
     const [image, setImage] = useState(null);
     const [hasAgreed, setHasAgreed] = useState(false);
 
@@ -127,6 +128,13 @@ const SendPoapDirect = ()=>{
         }
     }
 
+    const onChangeHowMany = (event)=>{
+        console.log("onChangeHowMany called");
+
+        const value = event.target.value;
+        setHowMany(value);
+    };
+
     const onChangeMultiple = (e)=>{
         console.log("onChangeMultiple  called"); 
         // console.dir(e);
@@ -143,6 +151,7 @@ const SendPoapDirect = ()=>{
             // single address
 
             setAddressFile(null);
+            setHowMany(0);
         }
     };
 
@@ -152,6 +161,12 @@ const SendPoapDirect = ()=>{
                 <>
                     받을사람 주소록 화일 &#40;csv, xlsx&#41; :
                     <input accept=".xlsx, .csv" id='addresses' type="file" onChange={onAddressesChange}/>
+                    <div class="ui right labeled input">
+                        <input type="number" step="1" pattern="\d+" min="1" onChange={onChangeHowMany} placeholder="명수..." />
+                        <div class="ui basic label">
+                            명
+                        </div>
+                    </div>
 
                 </>
             );
@@ -182,23 +197,27 @@ const SendPoapDirect = ()=>{
        console.log("onClickOkBtn  called"); 
 
 
-    //    const [title, setTitle] = useState("");
-    // const [description, setDescription] = useState("");
-    // const [email, setEmail] = useState("");
+    //      const [title, setTitle] = useState("");
+    //      const [description, setDescription] = useState("");
+    //      const [email, setEmail] = useState("");
     // const [isMultiple, setIsMultiple] = useState(false);
     // const [address, setAddress] = useState("");
     // const [addressFile, setAddressFile] = useState(null);
-    // const [image, setImage] = useState(null);
+    //      const [image, setImage] = useState(null);
     // const [hasAgreed, setHasAgreed] = useState(false);
 
         // check provider, wallet before sending data to server
         if(provider && currentAccount){
 
+            console.log("1");
+
             // check all fields is filled
             if(title && description && email && image && hasAgreed && (address || addressFile)){
 
+                console.log("2");
 
                 if(validateEmail(email)){
+                    console.log("3");
 
                     const data = new FormData();
                     
@@ -207,49 +226,73 @@ const SendPoapDirect = ()=>{
                     data.append("email",email);
                     data.append("image", image);
 
-                    
-                    
-                    console.log("typeOf image1",typeof(image1));
-                    if(typeof(image1) != "undefined"){
+                    if(!isMultiple){
+                        // single address
+
+                        console.log("4");
+
+
+                        if(address && isEthereumAddress(address)){
+
+                            console.log("5");
+
+                            data.append("address",address);
+                            data.append("howMany",1);
+                            
+                            const requestOptions = {
+                                method: 'POST',
+                                headers: { 
+                                    'Accept': 'application/json, text/plain'
+                                },
+                                body: data,
+                                mode:'cors'
+                            };
+                
+                            fetch("http://127.0.0.1:8000/api/create_single_direct_poap_claim/",requestOptions)
+                            .then((response)=>{
+                                console.log("response obj : ");
+                                console.dir(response);
+                
+                                if(response.ok){
+                                    return response.json();
+                                }else{
+                                    instantMsg("Failed to save content","warning");
+                                
+                                    throw Error("Failed communication with server for saving content");
+                                }
+                            }).then((data)=>{
+                
+                                console.log("data",data)
+                
+                                console.log("Success saved content in server");
+                
+                                
+                            });
+
+                        }else{
+                            instantMsg("올바른 지갑주소가 아닙니다","warning");
+                        }
+
+                        
+                    }else{
+                        // multiple addresses
+
+                        if(isPositiveInt(howMany)){
+
+                        }else{
+                            // howMany is not positive number
+
+                            setHowMany(0);
+                            instantMsg("명수는 양수만 가능합니다","warning");
+                        }
                         
                         
                     }
+
                     
+
         
-                    const requestOptions = {
-                        method: 'POST',
-                        headers: { 
-                            "Access-Control-Allow-Origin": "chrome-extension://nlamdelpgnmmnkmiolepklnffnfkhmpo/*",
-                            'Accept': 'application/json, text/plain'
-                        },
-                        body: data,
-                        mode:'cors'
-                    };
-        
-                    fetch("http://127.0.0.1:8000/api/create_content/",requestOptions)
-                    .then((response)=>{
-                        console.log("response obj : ");
-                        console.dir(response);
-        
-                        if(response.ok){
-                            return response.json();
-                        }else{
-                            instantMsg("Failed to save content","warning");
-                        
-                            throw Error("Failed communication with server for saving content");
-                        }
-                    }).then((data)=>{
-        
-                        console.log("data",data)
-        
-                        console.log("Success saved content in server");
-        
-                        instantMsg("Successfully saved","normal");
-                        
-                        setTitle("");
-                        setContent("");
-                        setImage1(null);
-                    });
+                    
 
                 }else{
                     instantMsg("이메일주소가 올바르지 않습니다", "warning");
@@ -412,7 +455,7 @@ const SendPoapDirect = ()=>{
     
 };
 
-export default SendPoapDirect;
+
 
 
 // check file is image type or not
@@ -456,3 +499,24 @@ function isEthereumAddress(address){
     return ethers.utils.isAddress(address);
 }
 
+
+// convert array into csv string
+// ref) https://stackoverflow.com/a/68146412
+function arrayToCsv(data){
+    return data.map(row =>
+      row
+      .map(String)  // convert every value to String
+      .map(v => v.replaceAll('"', '""'))  // escape double colons
+      .map(v => `"${v}"`)  // quote it
+      .join(',')  // comma-separated
+    ).join('\r\n');  // rows starting on new lines
+}
+
+// check positive integer or not
+// ref) https://stackoverflow.com/questions/10834796/validate-that-a-string-is-a-positive-integer
+function isPositiveInt(str) {
+    var n = Math.floor(Number(str));
+    return n !== Infinity && String(n) === str && n > 0;
+}
+
+export {SendPoapDirect, isFileImage, isXlsxCsv, isRightSizeFile, validateEmail, isEthereumAddress, arrayToCsv,isPositiveInt};

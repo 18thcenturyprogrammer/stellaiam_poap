@@ -148,3 +148,29 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 1024000
 # for providing absolute path 
 #  ref) https://stackoverflow.com/a/27609150
 SITE_URL = '127.0.0.1:8000'
+
+
+# logging into terminal on DEBUG mode 
+#  ref) https://stackoverflow.com/a/46931625
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'filters': ['require_debug_true'],
+        },
+    },
+    'loggers': {
+        'mylogger': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': True,
+        },
+    },
+}

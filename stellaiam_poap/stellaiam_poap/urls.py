@@ -26,6 +26,7 @@ urlpatterns = [
     path('create_poap/', include('frontEnd.urls')),
     path('send_poap_direct/', include('frontEnd.urls')),
     path('send_poap_non_direct/', include('frontEnd.urls')),
+    path('api/', include('api.urls')),
 
     
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)+ static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
