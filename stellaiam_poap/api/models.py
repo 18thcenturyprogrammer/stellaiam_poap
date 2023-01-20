@@ -36,5 +36,8 @@ class DirectPoapClaim(models.Model):
     image = models.ImageField(upload_to=img_path,blank=False, null = False)
     address = models.FileField(upload_to=address_path,blank=True, null = True)
     howMany = models.PositiveIntegerField(blank=False, null=False, default=1)
+    created = models.DateTimeField(auto_now_add=True)
+
+    imgCid =  models.CharField(max_length=500, blank=False, null=False, default ="")
 
 

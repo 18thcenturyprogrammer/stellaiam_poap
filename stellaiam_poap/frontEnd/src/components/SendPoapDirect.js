@@ -4,12 +4,26 @@ import React, {useEffect, useState} from "react";
 import { Toaster ,toast } from 'react-hot-toast';
 
 import { Table,Button,Checkbox ,Icon,Form, TextArea, Message,Item,List,Image,Comment,Header,Modal,Segment,Dimmer,Loader } from 'semantic-ui-react';
+import {
+    MDBBtn,
+    MDBModal,
+    MDBModalDialog,
+    MDBModalContent,
+    MDBModalHeader,
+    MDBModalTitle,
+    MDBModalBody,
+    MDBModalFooter,
+  } from 'mdb-react-ui-kit';
+
+import $ from 'jquery';
 
 import Menu from "./Menu";
 
 
 const SendPoapDirect = ()=>{
-
+    require('dotenv').config;
+    console.log(process.env);
+    
     const [currentAccount, setCurrentAccount] = useState(null);
     const [provider, setProvider] = useState(null);
 
@@ -19,9 +33,16 @@ const SendPoapDirect = ()=>{
     const [isMultiple, setIsMultiple] = useState(false);
     const [address, setAddress] = useState("");
     const [addressFile, setAddressFile] = useState(null);
-    const [howMany, setHowMany] = useState(0);
+    const [howMany, setHowMany] = useState(1);
     const [image, setImage] = useState(null);
     const [hasAgreed, setHasAgreed] = useState(false);
+
+    const [claimId, setClaimId] = useState(null);
+
+
+    const [modalOpen, setModalOpen] = useState(false);
+    const [isProcess, setIsProcess] = useState(false);
+
 
     const updateProvider = (pro)=>{
         setProvider(pro);
@@ -159,10 +180,10 @@ const SendPoapDirect = ()=>{
         if(multi){
             return(
                 <>
-                    받을사람 주소록 화일 &#40;csv, xlsx&#41; :
-                    <input accept=".xlsx, .csv" id='addresses' type="file" onChange={onAddressesChange}/>
+                    받을사람 주소록 화일 &#40;csv, xlsx&#41;
+                    <input className="file" accept=".xlsx, .csv" id='addresses' type="file" onChange={onAddressesChange}/>
                     <div class="ui right labeled input">
-                        <input type="number" step="1" pattern="\d+" min="1" onChange={onChangeHowMany} placeholder="명수..." />
+                        <input value={howMany} type="number" step="1" pattern="\d+" min="1" onChange={onChangeHowMany} placeholder="명수..." />
                         <div class="ui basic label">
                             명
                         </div>
@@ -193,18 +214,31 @@ const SendPoapDirect = ()=>{
         setHasAgreed(data.checked);
     };
 
+    const cleanFileLabels = ()=>{
+        $(".file").val('');
+    };
+
+    const cleanStates = ()=>{
+
+        setTitle("");
+        setDescription("");
+        setEmail("");
+        setIsMultiple(false);
+        setAddress("");
+        setAddressFile(null);
+        setHowMany(1);
+        setImage(null);
+        setHasAgreed(false);
+        setClaimId(null);
+        cleanFileLabels();
+    };
+
+
+
     const onClickOkBtn = ()=>{
        console.log("onClickOkBtn  called"); 
 
-
-    //      const [title, setTitle] = useState("");
-    //      const [description, setDescription] = useState("");
-    //      const [email, setEmail] = useState("");
-    // const [isMultiple, setIsMultiple] = useState(false);
-    // const [address, setAddress] = useState("");
-    // const [addressFile, setAddressFile] = useState(null);
-    //      const [image, setImage] = useState(null);
-    // const [hasAgreed, setHasAgreed] = useState(false);
+       setIsProcess(true);
 
         // check provider, wallet before sending data to server
         if(provider && currentAccount){
@@ -256,20 +290,26 @@ const SendPoapDirect = ()=>{
                                 if(response.ok){
                                     return response.json();
                                 }else{
-                                    instantMsg("Failed to save content","warning");
+                                    instantMsg("서버와의 통신에 문제가 있습니다","warning");
                                 
                                     throw Error("Failed communication with server for saving content");
                                 }
                             }).then((data)=>{
                 
-                                console.log("data",data)
-                
+                                console.log("data",data);
+                                
+                                console.log(data.data.id);
+
                                 console.log("Success saved content in server");
-                
+
+                                setIsProcess(false);
+                                setModalOpen(true)
+                                setClaimId(data.data.id);
                                 
                             });
 
                         }else{
+                            setIsProcess(false);
                             instantMsg("올바른 지갑주소가 아닙니다","warning");
                         }
 
@@ -282,27 +322,25 @@ const SendPoapDirect = ()=>{
                         }else{
                             // howMany is not positive number
 
+                            setIsProcess(false);
                             setHowMany(0);
                             instantMsg("명수는 양수만 가능합니다","warning");
                         }
                         
-                        
                     }
 
-                    
-
-        
-                    
-
                 }else{
+                    setIsProcess(false);
                     instantMsg("이메일주소가 올바르지 않습니다", "warning");
                 }
 
             }else{
+                setIsProcess(false);
                 instantMsg("모든 항목을 채우시고 동의서에 동의하셔야 합니다","warning");
             }
 
         }else{
+            setIsProcess(false);
             instantMsg("지갑이 연결되어 있지 않습니다","warning");
         }
     };
@@ -323,14 +361,121 @@ const SendPoapDirect = ()=>{
         }
     };
 
+    const changeModalOpen = () => setModalOpen(!modalOpen);
+
+    const onClickSendPoap = async ()=>{
+        console.log("onClickSendPoap called");
+
+        setModalOpen(false);
+        setIsProcess(true);
+
+        const { ethers, BigNumber } = require("ethers");
+
+        const abi = process.env.REACT_APP_ABI;
+        const contractAddress = process.env.REACT_APP_STELLAIAM_POAP_CONTRACT_ADDRESS;
+
+        const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        const stellaiamPoapContract = new ethers.Contract(contractAddress,abi,provider);
+
+        // Prompt user for account connections
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+
+        // const connectedWallet = signer.connect(provider);
+
+        const gasData = await provider.getFeeData();
+
+        // if i follow eip 1559, i can't override gasprice option
+        // maxFeePerGas must be higher than maxPriorityFeePerGas
+        const mulMaxFeePerGas = gasData.maxFeePerGas.mul(BigNumber.from(50));
+        const mulMaxPriorityFeePerGas = gasData.maxPriorityFeePerGas.mul(BigNumber.from(40));
+               
+        
+        const decimals = 15;
+        const input = process.env.REACT_APP_FEE*howMany*1000;
+
+        console.log("input :",input);
+
+        const amount = BigNumber.from(input).mul(BigNumber.from(10).pow(decimals));
+
+        console.log("amount :",amount);
+
+        console.log("Number(amount) :",Number(amount));
+
+        // normal gasLimit is 21000 , but not worked ,so i changed it to this
+        const options = {
+            value: amount,
+            gasLimit:ethers.utils.hexlify(1000000),
+            maxFeePerGas:mulMaxFeePerGas,
+            maxPriorityFeePerGas:mulMaxPriorityFeePerGas,
+            nonce: await provider.getTransactionCount(currentAccount)
+        };
+
+        
+        // send transaction with value
+        // ref) https://vsupalov.com/ethers-call-payable-solidity-function/
+        const result = await stellaiamPoapContract.connect(signer).paidByUser(claimId,howMany, options);
+        
+        const txReceipt = await result.wait();
+
+        console.log("txReceipt : ", txReceipt);
+        console.dir(txReceipt);
+
+        if(txReceipt.blockNumber){
+            console.log("claim paid successfully");
+
+            instantMsg("성공적으로 POAP을 보냈습니다","normal");
+            
+            cleanStates();
+            
+        }else{
+            instantMsg("POAP을 보내는 과정에서 문제가 발생했습니다","warning");
+        }
+
+        setIsProcess(false);
+
+
+    };
 
     return (
         <>
+            <MDBModal tabIndex='-1' show={modalOpen} setShow={setModalOpen}>
+                <MDBModalDialog centered>
+                <MDBModalContent>
+                    <MDBModalHeader>
+                    <MDBModalTitle>POAP 보내기</MDBModalTitle>
+                    <MDBBtn className='btn-close' color='none' onClick={changeModalOpen}></MDBBtn>
+                    </MDBModalHeader>
+                    <MDBModalBody>
+                    <h4>
+                        POAP 를 {howMany}개 보내는데
+                    </h4>
+                    <h4>
+                        {parseFloat(process.env.REACT_APP_FEE*howMany)} Matic 비용이 듭니다 
+                    </h4>
+                    <h4>보내시겠습니까 ?</h4>
+                    </MDBModalBody>
+                    <MDBModalFooter>
+                    <MDBBtn color='secondary' onClick={changeModalOpen}>
+                        아니오
+                    </MDBBtn>
+                    <MDBBtn onClick={onClickSendPoap}>예 보내겠습니다</MDBBtn>
+                    </MDBModalFooter>
+                </MDBModalContent>
+                </MDBModalDialog>
+            </MDBModal>
+
+            <Segment>
+                <Dimmer active={isProcess}>
+                    <Loader size='huge'>Processing</Loader>
+                </Dimmer>
+
 
             <Menu updateProvider={updateProvider} updateCurrentAccount={updateCurrentAccount}/>
 
+            
+
             <div id="body_component" className="ui centered one column grid">
-                
 
                 <div className="column row">
                     <div className="column">
@@ -398,7 +543,7 @@ const SendPoapDirect = ()=>{
                             </Table.Row>
                             <Table.Row>
                                 <Table.Cell colSpan="2">
-                                POAP 디자인 : <input accept="image/*" id='image' type="file" onChange={onImageChange}/>
+                                POAP 디자인 : <input className="file" accept="image/*" id='image' type="file" onChange={onImageChange}/>
                                 </Table.Cell>
                             </Table.Row>
                             <Table.Row>
@@ -417,7 +562,7 @@ const SendPoapDirect = ()=>{
                             <Table.Row>
                                 <Table.Cell colSpan='2'>
                                     <Form.Field>
-                                        <Checkbox onChange ={(evt,data)=>{onChangeTandC(evt,data)}} label="Stellaiam 규정 준수를 동의합니다" />
+                                        <Checkbox checked={hasAgreed} onChange ={(evt,data)=>{onChangeTandC(evt,data)}} label="Stellaiam 규정 준수를 동의합니다" />
                                     </Form.Field>
                                 </Table.Cell>
                             </Table.Row>
@@ -447,6 +592,8 @@ const SendPoapDirect = ()=>{
                     </div>
                 </div>
             </div>
+
+            </Segment>
 
 
         </>

@@ -1,3 +1,5 @@
+import sys
+import traceback
 import logging
 import requests
 import json
@@ -55,44 +57,49 @@ def create_single_direct_poap_claim_view(request):
             if not request.data['title'] or not request.data['description'] or not request.data['email'] or not request.data['address'] or not request.data['image'] or not request.data['howMany']:
                 return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
-            
-
-            # try:
-            #     writeTempSingleAddressCsv(request.data['email'],request.data['address'])
-
-                
-            # except Exception as e:
-            #     logger.info(e, exc_info=True)
-            #     logger.info("writting temp single address csv failed")
-            #     return Response(data, status=status.HTTP_400_BAD_REQUEST)
-
+            # use modified email address as filename 
             tempFileName = request.data['email'].replace("@","__").replace(".","_")
-
-            logger.info("tempFileName : ")
-            logger.info(tempFileName)
 
             address = request.data['address']
            
             with open(f'./media/csv/temp/{tempFileName}.csv', 'w+') as fp:
                 fp.write(f'address\n{address}')
 
-            # Using File
+            # create csv file with single address
             with open(f'./media/csv/temp/{tempFileName}.csv','rb') as f:
-                logger.info("#########################")
-                logger.info(dir(f))
-                logger.info(f)
-                logger.info(type(f))
+          
                 request.data['address']=File(f)
             
-
                 serializer = DirectPoapClaimSerializer(data= request.data)
 
                 if serializer.is_valid():
                     logger.info("serializer is valid")
                     serializer.save()
+
+                    # save design image into pinata ipfs
+                    imgCid = pinImg(serializer.data)
+
+                    # get claim obj and update and save
+                    directPoapClaim = DirectPoapClaim.objects.get(id=serializer.data['id'])
+                    directPoapClaim.imgCid = imgCid
+                    directPoapClaim.save()
+                    
+                    updatedClaim = DirectPoapClaim.objects.get(id=serializer.data['id'])
+                    
                     data['status'] ='success'
                     data['msg'] = 'created'
-                    data['data'] = serializer.data
+
+                    temp= {}
+                    temp['id'] = updatedClaim.id
+                    temp['email'] = updatedClaim.email
+                    temp['title'] = updatedClaim.title
+                    temp['description'] = updatedClaim.description
+                    temp['image'] = updatedClaim.image.name
+                    temp['howMany'] = updatedClaim.howMany
+                    temp['created'] = updatedClaim.created.isoformat()
+                    temp['imgCid'] = updatedClaim.imgCid
+
+                    data['data'] = temp
 
                     return Response(data, status=status.HTTP_201_CREATED)
             
@@ -111,6 +118,22 @@ def create_single_direct_poap_claim_view(request):
         print("===========e =========")
         print(e)
         print(dir(e))
+
+         # Get current system exception
+        ex_type, ex_value, ex_traceback = sys.exc_info()
+
+        # Extract unformatter stack traces as tuples
+        trace_back = traceback.extract_tb(ex_traceback)
+
+        # Format stacktrace
+        stack_trace = list()
+
+        for trace in trace_back:
+            stack_trace.append("File : %s , Line : %d, Func.Name : %s, Message : %s" % (trace[0], trace[1], trace[2], trace[3]))
+
+        print("Exception type : %s " % ex_type.__name__)
+        print("Exception message : %s" %ex_value)
+        print("Stack trace : %s" %stack_trace)
         return Response(data,status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -140,6 +163,51 @@ def get_direct_poap_claim_view(request, directPoapClaimId):
 
 
 
+   
+
+
+
+def pinImg(claim):
+    
+    # get secret ref) https://stackoverflow.com/a/61437799
+    pinataJwtToken = config('PINATA_JWT_TOKEN')
+
+    # access media file in view ref) https://stackoverflow.com/a/43630328
+    media_root = settings.MEDIA_ROOT
+
+    url = "https://api.pinata.cloud/pinning/pinFileToIPFS"
+
+    payload={
+        'pinataOptions': '{"cidVersion": 1}',
+        'pinataMetadata': '{"name": "poap_img_'+str(claim['id'])+'", "keyvalues": {"claim_id": "'+str(claim['id'])+'","email":"'+claim['email']+'","title":"'+claim['title']+'","description":"'+claim['description']+'","howMany":"'+str(claim['howMany'])+'","created":"'+claim['created']+'","imgIpfsCreated":"'+ timezone.now().isoformat()+'"}}'
+        }
+
+
+    files=[
+        ('file',('b.png',open(media_root +claim['image'].replace("/media",""),'rb')))
+    ]
+
+   
+    headers = {
+        'Authorization': 'Bearer '+pinataJwtToken,
+    }
+
+    # https://dweb.link/ipfs/
+    # .ipfs.w3s.link    ``
+
+    response = requests.request("POST", url, headers=headers, data=payload, files=files)
+
+    print("response")
+    print(response)
+    print(dir(response))
+
+    jsonObj = json.loads(response.text)
+    return jsonObj['IpfsHash']
+    
+   
+
+
+
 def writeTempSingleAddressCsv(email, address):
     logger.info("writting single address csv ING.....")
     logger.info(address)
@@ -158,6 +226,4 @@ def writeTempSingleAddressCsv(email, address):
         logger.info(dir(f))
         logger.info(f)
         logger.info(type(f))
-        return File(f)    
-
-   
+        return File(f) 
