@@ -1,3 +1,4 @@
+import os
 import sys
 import traceback
 import logging
@@ -143,6 +144,122 @@ def create_single_direct_poap_claim_view(request):
 
 
 
+@api_view(['POST',])
+def create_multiple_direct_poap_claim_view(request):
+    print("= create_multiple_direct_poap_claim_view =")
+    
+    logger.info("===== create_multiple_direct_poap_claim_view =====")
+    logger.info(request.data['title'])
+    logger.info(request.data['description'])
+    logger.info(request.data['email'])
+    logger.info(request.data['address'])
+    logger.info("=============address dir===============")
+    logger.info(dir(request.data['address']))
+    logger.info(request.data['address'].name)
+    logger.info(request.data['image'])
+    logger.info(request.data['howMany'])
+
+    logger.info(dir(request.data['image']))
+
+    logger.info(type(request.data['image']))
+  
+    try:
+
+        data={}
+
+        if request.method == 'POST':
+
+            if not request.data['title'] or not request.data['description'] or not request.data['email'] or not request.data['address'] or not request.data['image'] or not request.data['howMany']:
+                return Response(data, status=status.HTTP_400_BAD_REQUEST)
+            
+            # request.data._mutable = True
+
+            extension = getFileExtension(request.data['address'].name)
+
+            logger.info(extension)
+
+            if extension != '.csv' and extension != '.xlsx':
+                # only csv, xlsx acceptable
+                return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+            # use modified email address as filename 
+            tempFileName = request.data['email'].replace("@","__").replace(".","_")
+
+            request.data['address'].name = tempFileName+extension
+           
+            serializer = DirectPoapClaimSerializer(data= request.data)
+
+            if serializer.is_valid():
+                logger.info("serializer is valid")
+                serializer.save()
+                
+                # save design image into pinata ipfs
+                imgCid = pinImg(serializer.data)
+
+                # get claim obj and update and save
+                directPoapClaim = DirectPoapClaim.objects.get(id=serializer.data['id'])
+                directPoapClaim.imgCid = imgCid
+                directPoapClaim.save()
+                    
+                updatedClaim = DirectPoapClaim.objects.get(id=serializer.data['id'])
+                
+                data['status'] ='success'
+                data['msg'] = 'created'
+
+                temp= {}
+                temp['id'] = updatedClaim.id
+                temp['email'] = updatedClaim.email
+                temp['title'] = updatedClaim.title
+                temp['description'] = updatedClaim.description
+                temp['image'] = updatedClaim.image.name
+                temp['howMany'] = updatedClaim.howMany
+                temp['created'] = updatedClaim.created.isoformat()
+                temp['imgCid'] = updatedClaim.imgCid
+
+                data['data'] = temp
+
+                return Response(data, status=status.HTTP_201_CREATED)
+        
+            logger.info("===== serializer.errors =====")
+            logger.info(serializer.errors)
+
+
+            logger.info("===== serializer.validated_data =====")
+            logger.info(serializer.validated_data)
+                
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(data, status=status.HTTP_400_BAD_REQUEST)
+    
+    except Exception as e:
+        print("===========e =========")
+        print(e)
+        print(dir(e))
+
+         # Get current system exception
+        ex_type, ex_value, ex_traceback = sys.exc_info()
+
+        # Extract unformatter stack traces as tuples
+        trace_back = traceback.extract_tb(ex_traceback)
+
+        # Format stacktrace
+        stack_trace = list()
+
+        for trace in trace_back:
+            stack_trace.append("File : %s , Line : %d, Func.Name : %s, Message : %s" % (trace[0], trace[1], trace[2], trace[3]))
+
+        print("Exception type : %s " % ex_type.__name__)
+        print("Exception message : %s" %ex_value)
+        print("Stack trace : %s" %stack_trace)
+        return Response(data,status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
+
+
+
 
 @api_view(['GET',])
 def get_direct_poap_claim_view(request, directPoapClaimId):
@@ -211,6 +328,7 @@ def public_paid_direct_poap_claim_view(request):
         txReceipt = w3.eth.get_transaction_receipt(request.data['paidTxHash'])
         
         # get event log
+        # web3 py event log parse ref) https://ethereum.stackexchange.com/a/59288
         log = stellaiam_poap_contract.events.paidPoapClaim().processReceipt(txReceipt)
 
     
@@ -247,46 +365,38 @@ def public_paid_direct_poap_claim_view(request):
 
         directPoapClaim.save()
 
-        
+        fileExtension = getFileExtension(directPoapClaim.address.name)
 
-        addressDf = pd.read_csv(directPoapClaim.address, sep=',')
+        if(fileExtension == '.csv'):
+          addressDf = pd.read_csv(directPoapClaim.address, sep=',')
+        else:
+          addressDf = pd.read_excel(directPoapClaim.address)
 
+        logger.info("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+        logger.info(addressDf)
+        logger.info(dir(addressDf))
+        logger.info(addressDf['address'])
         addressList = addressDf['address'].tolist()
         # logger.info("addressList : ")
         # logger.info(addressList)
 
         sentCounter = 0 
         for address in addressList:
-            receipt = sendDirectPoap(address, directPoapClaim)
+            if(Web3.isAddress(address)):
+              receipt = sendDirectPoap(address, directPoapClaim)
 
-            # receipt.transactionHash is HexBytes like below
-            # b"\x07\xb8x\x11\xb1'\x0c\xcb\x17\xe8\xfe,=\n\x94\xf5\x1e\xdfs\xb1\xd0\x99\xa1Ht\x89\xd9\xc2G\xb7y\xad"
-            # receipt.transactionHash.hex() => '07b87811b1270ccb17e8fe2c3d0a94f51edf73b1d099a1487489d9c247b779ad'
-            directPoapReceipt = DirectPoapReceipt(claim = directPoapClaim, address= address, txHash='0x'+receipt.transactionHash.hex(), blockNumber = receipt.blockNumber)
-            directPoapReceipt.save()
-        
-            sentCounter += 1
+              # receipt.transactionHash is HexBytes like below
+              # b"\x07\xb8x\x11\xb1'\x0c\xcb\x17\xe8\xfe,=\n\x94\xf5\x1e\xdfs\xb1\xd0\x99\xa1Ht\x89\xd9\xc2G\xb7y\xad"
+              # receipt.transactionHash.hex() => '07b87811b1270ccb17e8fe2c3d0a94f51edf73b1d099a1487489d9c247b779ad'
+              directPoapReceipt = DirectPoapReceipt(claim = directPoapClaim, address= address, txHash='0x'+receipt.transactionHash.hex(), blockNumber = receipt.blockNumber)
+              directPoapReceipt.save()
+          
+              sentCounter += 1
 
-            if sentCounter == howMany:
-                break
+              if sentCounter == howMany:
+                  break
 
-        
-
-
-
-
-        # serializer =  DirectPoapClaimSerializer(directPoapClaim)
-        # data['status']='success'
-        # data['msg'] ='paid now'
-        # data['data'] = serializer.data
-        # return Response(data, status=status.HTTP_200_OK)
-
-
-    
-        # with open(f'./media/csv/temp/{tempFileName}.csv', 'w+') as fp:
-        #     fp.write(f'address\n{address}')
-
-        
+        sendEmail(directPoapClaim,sentCounter)
 
 
         return Response(data, status=status.HTTP_200_OK) 
@@ -427,9 +537,24 @@ def paid_direct_poap_claim_view(request):
 @api_view(['GET',])
 def email_test_view(request):
     data={}
-    sentEmail('dumpittrash@gmail.com')
+    sendEmail('dumpittrash@gmail.com')
     
     return Response(data, status=status.HTTP_200_OK)
+
+@api_view(['GET',])
+def get_extension_test_view(request):
+    data={}
+
+    directPoapClaim = DirectPoapClaim.objects.get(id=146)
+
+    logger.info(dir(directPoapClaim.address))
+    logger.info(directPoapClaim.address.name)
+
+    getFileExtension(directPoapClaim.address.name)
+    
+    return Response(data, status=status.HTTP_200_OK)
+
+
 
 
 
@@ -618,16 +743,30 @@ def writeTempSingleAddressCsv(email, address):
 
 # smtp google email send
 # ref) https://leimao.github.io/blog/Python-Send-Gmail/
-def sentEmail(receiver_email):
+def sendEmail(directPoapClaim,sentCounter):
 
     port = 465  # For SSL
     smtp_server = "smtp.gmail.com"
     email_address = config('EMAIL_ADDRESS')
     email_password = config('EMAIL_APP_PASSWORD')
-    
+
+    # logo_img = config('WEBSITE')+'static/for_django/images/logo-color.png'
+    logo_img = 'http://jacob-yo.net/wp-content/uploads/2023/01/stellaiam-low-resolution-color-logo.png'
+    facebook_logo = 'http://jacob-yo.net/wp-content/uploads/2023/01/facebook.png'
+    twitter_logo = 'http://jacob-yo.net/wp-content/uploads/2023/01/twitter.png'
+    instagram_logo ='http://jacob-yo.net/wp-content/uploads/2023/01/instagram.png' 
+    poap_img = directPoapClaim.image 
+    howMany = sentCounter
+    paidTxHash = directPoapClaim.paidTxHash
+    whoPaid = directPoapClaim.whoPaid
+    opensea_link = config('OPENSEA_URL')+config('MUMBAI_STELLAIAM_POAP_CONTRACT_ADDRESS')+"/"+str(directPoapClaim.id)
+    star_img = 'http://jacob-yo.net/wp-content/uploads/2023/01/star.png'
+
+
     msg = EmailMessage()
 
-    a = '바보'
+
+   
     
     template= Template('''
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional //EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -759,7 +898,7 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
   <tr>
     <td style="padding-right: 0px;padding-left: 0px;" align="center">
       
-      <img align="center" border="0" src="images/image-7.png" alt="image" title="image" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 16%;max-width: 92.8px;" width="92.8" class="v-src-width v-src-max-width"/>
+      <img align="center" border="0" src="$logo_img" alt="image" title="image" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 16%;max-width: 92.8px;" width="92.8" class="v-src-width v-src-max-width"/>
       
     </td>
   </tr>
@@ -800,7 +939,7 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
   <tr>
     <td style="padding-right: 0px;padding-left: 0px;" align="center">
       
-      <img align="center" border="0" src="images/image-1.png" alt="image" title="image" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 80%;max-width: 480px;" width="480" class="v-src-width v-src-max-width"/>
+      <img align="center" border="0" src="$poap_img" alt="image" title="image" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 80%;max-width: 480px;" width="480" class="v-src-width v-src-max-width"/>
       
     </td>
   </tr>
@@ -857,7 +996,7 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
     <tr>
       <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:40px 10px 10px;font-family:'Raleway',sans-serif;" align="left">
         
-  <h1 style="margin: 0px; line-height: 140%; text-align: center; word-wrap: break-word; font-weight: normal; font-family: Arvo; font-size: 24px;"><strong>$test POAP를 성공적으로 보냈습니다</strong></h1>
+  <h1 style="margin: 0px; line-height: 140%; text-align: center; word-wrap: break-word; font-weight: normal; font-family: Arvo; font-size: 24px;"><strong>POAP를 성공적으로 보냈습니다</strong></h1>
 
       </td>
     </tr>
@@ -872,7 +1011,7 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
   <!--[if mso]><style>.v-button {background: transparent !important;}</style><![endif]-->
 <div align="center">
   <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="https://www.unlayer.com" style="height:37px; v-text-anchor:middle; width:203px;" arcsize="67.5%"  stroke="f" fillcolor="#ffce00"><w:anchorlock/><center style="color:#000000;font-family:'Raleway',sans-serif;"><![endif]-->  
-    <a href="https://www.unlayer.com" target="_blank" class="v-button v-size-width" style="box-sizing: border-box;display: inline-block;font-family:'Raleway',sans-serif;text-decoration: none;-webkit-text-size-adjust: none;text-align: center;color: #000000; background-color: #ffce00; border-radius: 25px;-webkit-border-radius: 25px; -moz-border-radius: 25px; width:35%; max-width:100%; overflow-wrap: break-word; word-break: break-word; word-wrap:break-word; mso-border-alt: none;">
+    <a href="$opensea_link" target="_blank" class="v-button v-size-width" style="box-sizing: border-box;display: inline-block;font-family:'Raleway',sans-serif;text-decoration: none;-webkit-text-size-adjust: none;text-align: center;color: #000000; background-color: #ffce00; border-radius: 25px;-webkit-border-radius: 25px; -moz-border-radius: 25px; width:35%; max-width:100%; overflow-wrap: break-word; word-break: break-word; word-wrap:break-word; mso-border-alt: none;">
       <span class="v-padding" style="display:block;padding:10px 20px;line-height:120%;"><strong><span style="font-size: 14px; line-height: 16.8px;">Opensea에서 확인하기</span></strong></span>
     </a>
   <!--[if mso]></center></v:roundrect><![endif]-->
@@ -889,9 +1028,11 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
       <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:10px 50px;font-family:'Raleway',sans-serif;" align="left">
         
   <div style="line-height: 160%; text-align: center; word-wrap: break-word;">
-    <p style="line-height: 160%; font-size: 14px;">1명에게 성공적으로 POAP을 보냈습니다.</p>
-<p style="line-height: 160%; font-size: 14px;">비용을 지불한 지갑은 0x111121212 입니다.</p>
-<p style="line-height: 160%; font-size: 14px;">지불 Smart contract 주소는 0x21213123344 입니다</p>
+    <p style="line-height: 160%; font-size: 14px;">$howMany 명에게 성공적으로 POAP을 보냈습니다.</p>
+    <p style="line-height: 160%; font-size: 14px;">비용을 지불한 지갑주소는</p>
+    <p style="line-height: 160%; font-size: 14px;">$whoPaid 입니다.</p>
+    <p style="line-height: 160%; font-size: 14px;">비용지불 Smart contract 주소는</p>
+    <p style="line-height: 160%; font-size: 14px;">$paidTxHash 입니다</p>
   </div>
 
       </td>
@@ -908,7 +1049,7 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
   <tr>
     <td style="padding-right: 0px;padding-left: 0px;" align="center">
       
-      <img align="center" border="0" src="images/image-2.png" alt="image" title="image" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 7%;max-width: 42px;" width="42" class="v-src-width v-src-max-width"/>
+      <img align="center" border="0" src="$star_img" alt="image" title="image" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 7%;max-width: 42px;" width="42" class="v-src-width v-src-max-width"/>
       
     </td>
   </tr>
@@ -999,8 +1140,8 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
     <!--[if (mso)|(IE)]><td width="32" style="width:32px; padding-right: 15px;" valign="top"><![endif]-->
     <table align="left" border="0" cellspacing="0" cellpadding="0" width="32" height="32" style="width: 32px !important;height: 32px !important;display: inline-block;border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;margin-right: 15px">
       <tbody><tr style="vertical-align: top"><td align="left" valign="middle" style="word-break: break-word;border-collapse: collapse !important;vertical-align: top">
-        <a href="https://www.facebook.com/unlayer" title="Facebook" target="_blank">
-          <img src="images/image-5.png" alt="Facebook" title="Facebook" width="32" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: block !important;border: none;height: auto;float: none;max-width: 32px !important">
+        <a href="" title="Facebook" target="_blank">
+          <img src="$facebook_logo" alt="Facebook" title="Facebook" width="32" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: block !important;border: none;height: auto;float: none;max-width: 32px !important">
         </a>
       </td></tr>
     </tbody></table>
@@ -1009,18 +1150,8 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
     <!--[if (mso)|(IE)]><td width="32" style="width:32px; padding-right: 15px;" valign="top"><![endif]-->
     <table align="left" border="0" cellspacing="0" cellpadding="0" width="32" height="32" style="width: 32px !important;height: 32px !important;display: inline-block;border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;margin-right: 15px">
       <tbody><tr style="vertical-align: top"><td align="left" valign="middle" style="word-break: break-word;border-collapse: collapse !important;vertical-align: top">
-        <a href="https://twitter.com/unlayerapp" title="Twitter" target="_blank">
-          <img src="images/image-4.png" alt="Twitter" title="Twitter" width="32" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: block !important;border: none;height: auto;float: none;max-width: 32px !important">
-        </a>
-      </td></tr>
-    </tbody></table>
-    <!--[if (mso)|(IE)]></td><![endif]-->
-    
-    <!--[if (mso)|(IE)]><td width="32" style="width:32px; padding-right: 15px;" valign="top"><![endif]-->
-    <table align="left" border="0" cellspacing="0" cellpadding="0" width="32" height="32" style="width: 32px !important;height: 32px !important;display: inline-block;border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;margin-right: 15px">
-      <tbody><tr style="vertical-align: top"><td align="left" valign="middle" style="word-break: break-word;border-collapse: collapse !important;vertical-align: top">
-        <a href="https://www.linkedin.com/company/unlayer/mycompany/" title="LinkedIn" target="_blank">
-          <img src="images/image-3.png" alt="LinkedIn" title="LinkedIn" width="32" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: block !important;border: none;height: auto;float: none;max-width: 32px !important">
+        <a href="" title="Twitter" target="_blank">
+          <img src="$twitter_logo" alt="Twitter" title="Twitter" width="32" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: block !important;border: none;height: auto;float: none;max-width: 32px !important">
         </a>
       </td></tr>
     </tbody></table>
@@ -1029,8 +1160,8 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
     <!--[if (mso)|(IE)]><td width="32" style="width:32px; padding-right: 0px;" valign="top"><![endif]-->
     <table align="left" border="0" cellspacing="0" cellpadding="0" width="32" height="32" style="width: 32px !important;height: 32px !important;display: inline-block;border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;margin-right: 0px">
       <tbody><tr style="vertical-align: top"><td align="left" valign="middle" style="word-break: break-word;border-collapse: collapse !important;vertical-align: top">
-        <a href="https://www.instagram.com/unlayer_official/" title="Instagram" target="_blank">
-          <img src="images/image-6.png" alt="Instagram" title="Instagram" width="32" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: block !important;border: none;height: auto;float: none;max-width: 32px !important">
+        <a href="" title="Instagram" target="_blank">
+          <img src="$instagram_logo" alt="Instagram" title="Instagram" width="32" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: block !important;border: none;height: auto;float: none;max-width: 32px !important">
         </a>
       </td></tr>
     </tbody></table>
@@ -1094,6 +1225,9 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
   <div style="line-height: 160%; text-align: center; word-wrap: break-word;">
     <p style="font-size: 14px; line-height: 160%;"> </p>
 <p style="font-size: 14px; line-height: 160%;">Stellaiam All rights reserved</p>
+
+
+
   </div>
 
       </td>
@@ -1121,17 +1255,43 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
 </body>
 
 </html>''')
+    
 
-    content = template.substitute(test=a)
+    content = template.substitute(
+      logo_img= logo_img, 
+      facebook_logo= facebook_logo, 
+      twitter_logo= twitter_logo, 
+      instagram_logo=instagram_logo,
+      poap_img=poap_img,
+      howMany=howMany,
+      paidTxHash=paidTxHash,
+      whoPaid=whoPaid,
+      opensea_link=opensea_link,
+      star_img=star_img
+      )
 
     logger.info(content)
     
     msg.set_content(content, subtype='html')
     msg['Subject'] = "Hello Underworld from Python Gmail!"
     msg['From'] = email_address
-    msg['To'] = receiver_email
+    msg['To'] = directPoapClaim.email
 
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
         server.login(email_address, email_password)
-        server.send_message(msg, from_addr=email_address, to_addrs=receiver_email)
+        server.send_message(msg, from_addr=email_address, to_addrs=directPoapClaim.email)
+
+
+def getFileExtension(filePathName):
+  # this will return a tuple of root and extension
+  split_tup = os.path.splitext(filePathName)
+  print(split_tup)
+    
+  # extract the file name and extension
+  file_name = split_tup[0]
+  file_extension = split_tup[1]
+    
+  print("File Name: ", file_name)
+  print("File Extension: ", file_extension)
+  return file_extension

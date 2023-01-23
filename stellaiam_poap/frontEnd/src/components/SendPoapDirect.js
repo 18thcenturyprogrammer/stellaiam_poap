@@ -178,12 +178,13 @@ const SendPoapDirect = ()=>{
 
     const getAddressInput = (multi)=>{
         if(multi){
+            
             return(
                 <>
                     받을사람 주소록 화일 &#40;csv, xlsx&#41;
                     <input className="file" accept=".xlsx, .csv" id='addresses' type="file" onChange={onAddressesChange}/>
                     <div class="ui right labeled input">
-                        <input value={howMany} type="number" step="1" pattern="\d+" min="1" onChange={onChangeHowMany} placeholder="명수..." />
+                        <input value={howMany} type="number" step="1" pattern="\d+" min="2" onChange={onChangeHowMany} placeholder="명수..." />
                         <div class="ui basic label">
                             명
                         </div>
@@ -290,6 +291,7 @@ const SendPoapDirect = ()=>{
                                 if(response.ok){
                                     return response.json();
                                 }else{
+                                    setIsProcess(false);
                                     instantMsg("서버와의 통신에 문제가 있습니다","warning");
                                 
                                     throw Error("Failed communication with server for saving content");
@@ -317,7 +319,47 @@ const SendPoapDirect = ()=>{
                     }else{
                         // multiple addresses
 
-                        if(isPositiveInt(howMany)){
+                        if(isPositiveInt(howMany) && howMany > 1){
+
+                            data.append("address",addressFile);
+                            data.append("howMany",howMany);
+                            
+                            const requestOptions = {
+                                method: 'POST',
+                                headers: { 
+                                    'Accept': 'application/json, text/plain'
+                                },
+                                body: data,
+                                mode:'cors'
+                            };
+                
+                            fetch("http://127.0.0.1:8000/api/create_multiple_direct_poap_claim/",requestOptions)
+                            .then((response)=>{
+                                console.log("response obj : ");
+                                console.dir(response);
+                
+                                if(response.ok){
+                                    return response.json();
+                                }else{
+
+                                    setIsProcess(false);
+                                    instantMsg("서버와의 통신에 문제가 있습니다","warning");
+                                
+                                    throw Error("Failed communication with server for saving content");
+                                }
+                            }).then((data)=>{
+                
+                                console.log("data",data);
+                                
+                                console.log(data.data.id);
+
+                                console.log("Success saved content in server");
+
+                                setIsProcess(false);
+                                setModalOpen(true)
+                                setClaimId(data.data.id);
+                                
+                            }); 
 
                         }else{
                             // howMany is not positive number
@@ -353,11 +395,11 @@ const SendPoapDirect = ()=>{
 
         switch (type){
             case "normal":
-                toast.success(msg);
+                toast.success(msg,{duration: 8000});
             
                 break;
             case "warning":
-                toast.error(msg);
+                toast.error(msg,{duration: 8000});
         }
     };
 
@@ -426,12 +468,12 @@ const SendPoapDirect = ()=>{
 
             sendTxToServer(txReceipt.transactionHash)
 
-            instantMsg("성공적으로 POAP을 보냈습니다","normal");
+            instantMsg("지불을 완료하셨습니다","normal");
             
             cleanStates();
             
         }else{
-            instantMsg("POAP을 보내는 과정에서 문제가 발생했습니다","warning");
+            instantMsg("지불하는 과정에서 문제가 발생했습니다","warning");
         }
 
         setIsProcess(false);
@@ -468,14 +510,8 @@ const SendPoapDirect = ()=>{
         }).then((data)=>{
 
             console.log("data",data);
-            
-            console.log(data.data.id);
 
             console.log("Success saved content in server");
-
-            setIsProcess(false);
-            setModalOpen(true)
-            setClaimId(data.data.id);
             
         });
     };
