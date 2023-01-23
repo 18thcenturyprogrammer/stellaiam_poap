@@ -424,6 +424,8 @@ const SendPoapDirect = ()=>{
         if(txReceipt.blockNumber){
             console.log("claim paid successfully");
 
+            sendTxToServer(txReceipt.transactionHash)
+
             instantMsg("성공적으로 POAP을 보냈습니다","normal");
             
             cleanStates();
@@ -435,6 +437,47 @@ const SendPoapDirect = ()=>{
         setIsProcess(false);
 
 
+    };
+
+    const sendTxToServer = (paidTxHash)=>{
+        const data = new FormData();
+
+        data.append("paidTxHash",paidTxHash);
+       
+        const requestOptions = {
+            method: 'POST',
+            headers: { 
+                'Accept': 'application/json, text/plain'
+            },
+            body: data,
+            mode:'cors'
+        };
+
+        fetch("http://127.0.0.1:8000/api/public_paid_direct_poap_claim/",requestOptions)
+        .then((response)=>{
+            console.log("response obj : ");
+            console.dir(response);
+
+            if(response.ok){
+                return response.json();
+            }else{
+                instantMsg("서버와의 통신에 문제가 있습니다","warning");
+            
+                throw Error("Failed communication with server for saving content");
+            }
+        }).then((data)=>{
+
+            console.log("data",data);
+            
+            console.log(data.data.id);
+
+            console.log("Success saved content in server");
+
+            setIsProcess(false);
+            setModalOpen(true)
+            setClaimId(data.data.id);
+            
+        });
     };
 
     return (

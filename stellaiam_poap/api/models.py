@@ -39,5 +39,21 @@ class DirectPoapClaim(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     imgCid =  models.CharField(max_length=500, blank=False, null=False, default ="")
+    metaCid = models.CharField(max_length=500, blank=False, null=False, default ="")
+
+    paidTxHash = models.CharField(max_length=200, blank=False, null=False, default ="")
+    uriTxHash = models.CharField(max_length=200, blank=False, null=False, default ="")
+    whoPaid = models.CharField(max_length=200, blank=False, null=False, default ="")
+    updated = models.DateTimeField(auto_now=True)
+    isPaid = models.BooleanField(default=False)
 
 
+class DirectPoapReceipt(models.Model):
+    id = models.AutoField(primary_key=True)
+    claim = models.ForeignKey(DirectPoapClaim, on_delete=models.CASCADE)
+    address = models.CharField(max_length=200, blank=False, null=False)
+    created = models.DateTimeField(auto_now_add=True)
+
+    txHash = models.CharField(max_length=200, blank=False, null=False, default ="")
+    blockNumber = models.CharField(max_length=200, blank=False, null=False, default ="")
+    

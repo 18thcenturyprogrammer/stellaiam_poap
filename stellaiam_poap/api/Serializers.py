@@ -27,7 +27,4 @@ class DirectPoapClaimSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DirectPoapClaim
-        fields =['id','email','title','description','image','address','howMany','imgCid','created']
-
-    image = serializers.ImageField(validators=[file_size_validator], required=True)
-    address = serializers.FileField(validators=[file_size_validator], required=True)
+        fields =['id','email','title','description','image','address','howMany','imgCid', 'metaCid','created', 'paidTxHash', 'uriTxHash', 'whoPaid', 'updated', 'isPaid']
