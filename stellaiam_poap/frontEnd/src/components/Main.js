@@ -18,7 +18,7 @@ const Main = ()=>{
     return(
 
         <>
-            <Menu updateProvider={()=>{}} updateCurrentAccount={()=>{}} />
+            <Menu updateProvider={()=>{}} updateCurrentAccount={()=>{}} updateChainId={()=>{}} />
             <HeroCarousel />
 
             <h2 className="ui horizontal divider header">

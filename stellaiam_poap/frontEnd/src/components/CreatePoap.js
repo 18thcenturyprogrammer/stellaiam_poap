@@ -115,7 +115,7 @@ const CreatePoap = ()=>{
     return (
         <>
 
-            <Menu updateProvider={()=>{}} updateCurrentAccount={()=>{}} />
+            <Menu updateProvider={()=>{}} updateCurrentAccount={()=>{}} updateChainId={()=>{}} />
             <div id="CreateProp">
                 {getContent(hasMetamask)}
             </div>

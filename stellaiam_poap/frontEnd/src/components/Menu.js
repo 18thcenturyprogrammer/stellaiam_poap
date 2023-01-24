@@ -119,9 +119,9 @@ const Menu = (props)=>{
             if(chainIdDec == 80001){
                 // mumbai network supported
 
-                instantMsg("Network changed into "+NETWORKS[chainIdDec.toString()], "normal");
+                instantMsg(NETWORKS[chainIdDec.toString()]+" 네트워크로 바뀌었습니다", "normal");
             }else{
-                instantMsg("Network changed but only Mumbai is supported", "warning");
+                instantMsg("지원되지 않는 네트워크로 전환 되었습니다", "warning");
             }
             setChainId(chainIdDec);
         };
@@ -142,8 +142,13 @@ const Menu = (props)=>{
         };
     }, [currentAccount]);
 
+
+    useEffect(()=>{
+        props.updateChainId(chainId)
+    },[chainId]);
+
     const onLogout = () => {
-        instantMsg("Wallet is disconnected", "warning")
+        instantMsg("지갑연결이 끊어졌습니다", "warning")
         setChainId(null);
         setCurrentAccount(null);
     };
@@ -168,11 +173,11 @@ const Menu = (props)=>{
 
         switch (type){
             case "normal":
-                toast.success(msg);
+                toast.success(msg,{duration: 8000});
             
                 break;
             case "warning":
-                toast.error(msg);
+                toast.error(msg,{duration: 8000});
         }
     };
 
@@ -213,11 +218,6 @@ const Menu = (props)=>{
     };
 
     
-
-
-
-
-
     return(
 
         <>
@@ -231,7 +231,7 @@ const Menu = (props)=>{
                 <a className="item" href="/"><h4>Home</h4></a>
                 <a className="item" href='/create_poap'><h4>POAP 만들기</h4></a>
                 
-
+                
                 <div className="right menu">
                     <a className="ui item">
                     <h4>{getWalletBtn(provider)}</h4>

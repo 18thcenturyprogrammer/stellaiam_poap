@@ -26,6 +26,7 @@ const SendPoapDirect = ()=>{
     
     const [currentAccount, setCurrentAccount] = useState(null);
     const [provider, setProvider] = useState(null);
+    const [chainId, setChainId] = useState(0);
 
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -43,6 +44,24 @@ const SendPoapDirect = ()=>{
     const [modalOpen, setModalOpen] = useState(false);
     const [isProcess, setIsProcess] = useState(false);
 
+    const NETWORKS = {
+        1: "Ethereum Main Network",
+        3: "Ropsten Test Network",
+        4: "Rinkeby Test Network",
+        5: "Goerli Test Network",
+        42: "Kovan Test Network",
+        137: "Polygon Main Network",
+        80001: "Mumbai Test Network"
+    };
+
+    useEffect(()=>{
+        cleanStates()
+    },[currentAccount]);
+
+    useEffect(()=>{
+        cleanStates()
+    },[chainId]);
+
 
     const updateProvider = (pro)=>{
         setProvider(pro);
@@ -56,6 +75,14 @@ const SendPoapDirect = ()=>{
 
         console.log("acct is updated in main component");
         console.log("acct : ",acct);
+    };
+
+
+    const updateChainId = (id)=>{
+        setChainId(id);
+
+        console.log("id is updated in main component");
+        console.log("id : ",id);
     };
 
     
@@ -206,6 +233,28 @@ const SendPoapDirect = ()=>{
         }
     };
 
+    const getChainIdAlert = ()=>{
+        if(currentAccount && chainId != 80001){
+            return(
+                <>
+                    <div className="right menu">
+                        
+                        <div class="ui negative message">
+                            <i class="close icon"></i>
+                            <div class="header">
+                                Mumbai 네트워크가 아닙니다 !!!
+                            </div>
+                            <p>지원되지 않는 네트워크에서 지불된 토큰은 사라질수 있습니다</p>
+                        </div>
+                        
+                    </div>
+                </>
+            );
+        }else{
+            return("");
+        }
+    };
+
     const onChangeTandC = (event, data)=>{
         console.log("onChangeTandC  called"); 
         console.dir(event);
@@ -232,6 +281,9 @@ const SendPoapDirect = ()=>{
         setHasAgreed(false);
         setClaimId(null);
         cleanFileLabels();
+
+        setModalOpen(false);
+        setIsProcess(false);
     };
 
 
@@ -550,11 +602,17 @@ const SendPoapDirect = ()=>{
                 </Dimmer>
 
 
-            <Menu updateProvider={updateProvider} updateCurrentAccount={updateCurrentAccount}/>
+            <Menu updateProvider={updateProvider} updateCurrentAccount={updateCurrentAccount} updateChainId={updateChainId}/>
 
             
 
             <div id="body_component" className="ui centered one column grid">
+                <div className="column row">
+                    <div className="column">
+                    {getChainIdAlert(chainId)}
+                    </div>
+                </div>
+
 
                 <div className="column row">
                     <div className="column">
