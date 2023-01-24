@@ -28,7 +28,7 @@ def address_path(instance, filename):
     return 'addresses/{0}/{1}'.format(instance.email.replace("@","--").replace(".","_"), str(timezone.now().timestamp()).replace(".","")+'.'+extension)
 
 
-class DirectPoapClaim(models.Model):
+class PoapClaim(models.Model):
     id = models.AutoField(primary_key=True)
     email = models.CharField(max_length=200, blank=False, null=False)
     title =  models.CharField(max_length=200, blank=False, null=False)
@@ -37,6 +37,8 @@ class DirectPoapClaim(models.Model):
     address = models.FileField(upload_to=address_path,blank=True, null = True)
     howMany = models.PositiveIntegerField(blank=False, null=False, default=1)
     created = models.DateTimeField(auto_now_add=True)
+
+    secret = models.CharField(max_length=200, blank=True, null=True)
 
     imgCid =  models.CharField(max_length=500, blank=False, null=False, default ="")
     metaCid = models.CharField(max_length=500, blank=False, null=False, default ="")
@@ -47,10 +49,9 @@ class DirectPoapClaim(models.Model):
     updated = models.DateTimeField(auto_now=True)
     isPaid = models.BooleanField(default=False)
 
-
-class DirectPoapReceipt(models.Model):
+class PoapReceipt(models.Model):
     id = models.AutoField(primary_key=True)
-    claim = models.ForeignKey(DirectPoapClaim, on_delete=models.CASCADE)
+    claim = models.ForeignKey(PoapClaim, on_delete=models.CASCADE)
     address = models.CharField(max_length=200, blank=False, null=False)
     created = models.DateTimeField(auto_now_add=True)
 

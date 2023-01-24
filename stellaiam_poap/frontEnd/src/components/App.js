@@ -7,7 +7,7 @@ import { Container } from 'semantic-ui-react';
 import Main from "./Main";
 import CreatePoap from "./CreatePoap";
 import {SendPoapDirect} from "./SendPoapDirect";
-import SendPoapNonDirect from "./SendPoapNonDirect";
+import {SendPoapNonDirect} from "./SendPoapNonDirect";
 
 
 

@@ -441,6 +441,8 @@ const SendPoapDirect = ()=>{
 
     const onClickCancelBtn = ()=>{
         console.log("onClickCancelBtn  called"); 
+
+        cleanStates();
     };
 
     const instantMsg = (msg, type)=>{
@@ -625,7 +627,7 @@ const SendPoapDirect = ()=>{
                         <Table.Header>
                             <Table.Row>
                                 <Table.HeaderCell colSpan="2">
-                                <h1>POAP 직접 보내기</h1>
+                                <h1>받는이에게 POAP 바로 보내기</h1>
                                 </Table.HeaderCell>
                                 
                             </Table.Row>

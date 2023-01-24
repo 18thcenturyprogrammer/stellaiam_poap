@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.conf import settings
 from rest_framework import serializers
 
-from api.models import DirectPoapClaim
+from api.models import PoapClaim
 
 # file size validation
 # ref) https://www.codesnippet.dev/jvorcak/validating-image-dimensions-and-size-in-django-rest-framework
@@ -20,11 +20,11 @@ def file_size_validator(image):
 
 
 
-class DirectPoapClaimSerializer(serializers.ModelSerializer):
+class PoapClaimSerializer(serializers.ModelSerializer):
     # django rest serializer method field
     # ref) https://www.django-rest-framework.org/api-guide/fields/#serializermethodfield
     # userObj = serializers.SerializerMethodField()
 
     class Meta:
-        model = DirectPoapClaim
-        fields =['id','email','title','description','image','address','howMany','imgCid', 'metaCid','created', 'paidTxHash', 'uriTxHash', 'whoPaid', 'updated', 'isPaid']
+        model = PoapClaim
+        fields =['id','email','title','description','image','address','howMany','imgCid', 'metaCid','created', 'secret', 'paidTxHash', 'uriTxHash', 'whoPaid', 'updated', 'isPaid']

@@ -33,6 +33,8 @@ const SendPoapNonDirect = ()=>{
     const [email, setEmail] = useState("");
     
     const [howMany, setHowMany] = useState(1);
+    const [secret, setSecret] = useState("");
+
     const [image, setImage] = useState(null);
     const [hasAgreed, setHasAgreed] = useState(false);
 
@@ -141,6 +143,12 @@ const SendPoapNonDirect = ()=>{
         setHowMany(value);
     };
 
+    const onChangeSecret = (event)=>{
+        const value = event.target.value;
+        setSecret(value);
+    };
+
+
 
     const getChainIdAlert = ()=>{
         if(currentAccount && chainId != 80001){
@@ -205,68 +213,69 @@ const SendPoapNonDirect = ()=>{
             console.log("1");
 
             // check all fields is filled
-            if(title && description && email && image && hasAgreed){
+            if(title && description && email && image && hasAgreed && howMany && secret){
 
                 console.log("2");
 
                 if(validateEmail(email)){
                     console.log("3");
 
-                    const data = new FormData();
-                    
-                    data.append("title",title);
-                    data.append("description",description);
-                    data.append("email",email);
-                    data.append("image", image);
-
-                    
-                        // single address
-
-                        console.log("4");
-
-
-                            console.log("5");
-
-                            data.append("address",address);
-                            data.append("howMany",1);
-                            
-                            const requestOptions = {
-                                method: 'POST',
-                                headers: { 
-                                    'Accept': 'application/json, text/plain'
-                                },
-                                body: data,
-                                mode:'cors'
-                            };
-                
-                            fetch("http://127.0.0.1:8000/api/create_single_direct_poap_claim/",requestOptions)
-                            .then((response)=>{
-                                console.log("response obj : ");
-                                console.dir(response);
-                
-                                if(response.ok){
-                                    return response.json();
-                                }else{
-                                    setIsProcess(false);
-                                    instantMsg("서버와의 통신에 문제가 있습니다","warning");
-                                
-                                    throw Error("Failed communication with server for saving content");
-                                }
-                            }).then((data)=>{
-                
-                                console.log("data",data);
-                                
-                                console.log(data.data.id);
-
-                                console.log("Success saved content in server");
-
-                                setIsProcess(false);
-                                setModalOpen(true)
-                                setClaimId(data.data.id);
-                                
-                            });
-
+                    if(isPositiveInt(howMany) && howMany > 1){
                         
+                        const data = new FormData();
+                    
+                        data.append("title",title);
+                        data.append("description",description);
+                        data.append("email",email);
+                        data.append("image", image);
+                        data.append("howMany",howMany);
+                        data.append("secret",secret);
+                        
+                        const requestOptions = {
+                            method: 'POST',
+                            headers: { 
+                                'Accept': 'application/json, text/plain'
+                            },
+                            body: data,
+                            mode:'cors'
+                        };
+            
+                        fetch("http://127.0.0.1:8000/api/create_non_direct_poap_claim/",requestOptions)
+                        .then((response)=>{
+                            console.log("response obj : ");
+                            console.dir(response);
+            
+                            if(response.ok){
+                                return response.json();
+                            }else{
+                                setIsProcess(false);
+                                instantMsg("서버와의 통신에 문제가 있습니다","warning");
+                            
+                                throw Error("Failed communication with server for saving content");
+                            }
+                        }).then((data)=>{
+            
+                            console.log("data",data);
+                            
+                            console.log(data.data.id);
+
+                            console.log("Success saved content in server");
+
+                            setIsProcess(false);
+                            setModalOpen(true)
+                            setClaimId(data.data.id);
+                            
+                        });
+
+                    }else{
+
+                        // howMany is not positive number
+
+                        setIsProcess(false);
+                        setHowMany(0);
+                        instantMsg("명수는 양수만 가능합니다","warning");
+
+                    }
 
                 }else{
                     setIsProcess(false);
@@ -286,6 +295,8 @@ const SendPoapNonDirect = ()=>{
 
     const onClickCancelBtn = ()=>{
         console.log("onClickCancelBtn  called"); 
+
+        cleanStates();
     };
 
     const instantMsg = (msg, type)=>{
@@ -392,7 +403,7 @@ const SendPoapNonDirect = ()=>{
             mode:'cors'
         };
 
-        fetch("http://127.0.0.1:8000/api/public_paid_direct_poap_claim/",requestOptions)
+        fetch("http://127.0.0.1:8000/api/public_paid_non_direct_poap_claim/",requestOptions)
         .then((response)=>{
             console.log("response obj : ");
             console.dir(response);
@@ -424,18 +435,18 @@ const SendPoapNonDirect = ()=>{
                     </MDBModalHeader>
                     <MDBModalBody>
                     <h4>
-                        POAP 를 {howMany}개 보내는데
+                        POAP 를 {howMany}개 발행하는데
                     </h4>
                     <h4>
                         {parseFloat(process.env.REACT_APP_FEE*howMany)} Matic 비용이 듭니다 
                     </h4>
-                    <h4>보내시겠습니까 ?</h4>
+                    <h4>발행하시겠습니까 ?</h4>
                     </MDBModalBody>
                     <MDBModalFooter>
                     <MDBBtn color='secondary' onClick={changeModalOpen}>
                         아니오
                     </MDBBtn>
-                    <MDBBtn onClick={onClickSendPoap}>예 보내겠습니다</MDBBtn>
+                    <MDBBtn onClick={onClickSendPoap}>예 발행하겠습니다</MDBBtn>
                     </MDBModalFooter>
                 </MDBModalContent>
                 </MDBModalDialog>
@@ -470,7 +481,7 @@ const SendPoapNonDirect = ()=>{
                         <Table.Header>
                             <Table.Row>
                                 <Table.HeaderCell colSpan="2">
-                                <h1>POAP 직접 보내기</h1>
+                                <h1>POAP 받을수 있는 링크 만들기</h1>
                                 </Table.HeaderCell>
                                 
                             </Table.Row>
@@ -529,15 +540,37 @@ const SendPoapNonDirect = ()=>{
                                 </Table.Cell>
                             </Table.Row>
                             <Table.Row>
-                                <Table.Cell>
+                                <Table.Cell colSpan="2">
                                     
+                                    <div class="ui right labeled input">
+                                        <input value={howMany} type="number" step="1" pattern="\d+" min="2" onChange={onChangeHowMany} placeholder="명수..." />
+                                        <div class="ui basic label">
+                                            명
+                                        </div>
+                                    </div>
+                                    
+                                </Table.Cell>
+                                
+                            </Table.Row>
+                            <Table.Row>
+                                <Table.Cell>
+
+                                    <Form.Field>
+                                        <input 
+                                            id='titleInput' 
+                                            placeholder='인증암호'
+                                            value={secret} 
+                                            onChange={onChangeSecret}    
+                                        />
+                                    </Form.Field>
                                     
                                 </Table.Cell>
                                 <Table.Cell>
-                                    
+
+                                    <p>POAP를 받기위해 사용자가 입력해야 하는 비밀코드입니다</p>
+
                                 </Table.Cell>
                             </Table.Row>
-
                             <Table.Row>
                                 <Table.Cell colSpan='2'>
                                     <Form.Field>
