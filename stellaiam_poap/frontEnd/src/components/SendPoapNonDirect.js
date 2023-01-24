@@ -18,6 +18,8 @@ import {
 import $ from 'jquery';
 
 import Menu from "./Menu";
+import Footer from "./Footer";
+
 
 
 const SendPoapNonDirect = ()=>{
@@ -585,11 +587,7 @@ const SendPoapNonDirect = ()=>{
                                     <Button secondary onClick={onClickCancelBtn}>취소</Button>
                                 </Table.Cell>        
                             </Table.Row>
-                            <Table.Row>
-                                <Table.Cell colSpan="2">
-                                   
-                                </Table.Cell>        
-                            </Table.Row>
+                            
                             
                         </Table.Body>
             
@@ -604,7 +602,7 @@ const SendPoapNonDirect = ()=>{
                     </div>
                 </div>
             </div>
-
+            <Footer />
             </Segment>
 
 
