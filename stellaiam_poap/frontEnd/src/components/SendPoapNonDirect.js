@@ -197,6 +197,7 @@ const SendPoapNonDirect = ()=>{
         setHasAgreed(false);
         setClaimId(null);
         cleanFileLabels();
+        setSecret("")
 
         setModalOpen(false);
         setIsProcess(false);
@@ -242,7 +243,7 @@ const SendPoapNonDirect = ()=>{
                             mode:'cors'
                         };
             
-                        fetch("http://127.0.0.1:8000/api/create_non_direct_poap_claim/",requestOptions)
+                        fetch(`${process.env.REACT_APP_WEBSITE}api/create_non_direct_poap_claim/`,requestOptions)
                         .then((response)=>{
                             console.log("response obj : ");
                             console.dir(response);
@@ -339,8 +340,9 @@ const SendPoapNonDirect = ()=>{
 
         // if i follow eip 1559, i can't override gasprice option
         // maxFeePerGas must be higher than maxPriorityFeePerGas
-        const mulMaxFeePerGas = gasData.maxFeePerGas.mul(BigNumber.from(50));
-        const mulMaxPriorityFeePerGas = gasData.maxPriorityFeePerGas.mul(BigNumber.from(40));
+        // old stable values 50,40
+        const mulMaxFeePerGas = gasData.maxFeePerGas.mul(BigNumber.from(10));
+        const mulMaxPriorityFeePerGas = gasData.maxPriorityFeePerGas.mul(BigNumber.from(10));
                
         
         const decimals = 15;
@@ -405,7 +407,7 @@ const SendPoapNonDirect = ()=>{
             mode:'cors'
         };
 
-        fetch("http://127.0.0.1:8000/api/public_paid_non_direct_poap_claim/",requestOptions)
+        fetch(`${process.env.REACT_APP_WEBSITE}api/public_paid_non_direct_poap_claim/`,requestOptions)
         .then((response)=>{
             console.log("response obj : ");
             console.dir(response);

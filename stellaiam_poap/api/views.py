@@ -6,9 +6,16 @@ import requests
 import json
 import datetime
 import time
+
 import smtplib, ssl
 from email.message import EmailMessage
 from string import Template
+import qrcode
+import email
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # get secret ref) https://stackoverflow.com/a/61437799
 from decouple import config
@@ -353,26 +360,130 @@ def create_non_direct_poap_claim_view(request):
 
 
 @api_view(['GET',])
-def get_direct_poap_claim_view(request, poapClaimId):
-    logger.info("===== get_direct_poap_claim_view =====")
-    logger.info(poapClaimId)
+def get_poap_view(request, poapId):
+    try:  
+        logger.info("===== get_direct_poap_claim_view =====")
+        logger.info(poapId)
 
 
-    data={}
+        data={}
+        try:
+            poap = PoapClaim.objects.get(id=poapId)
+        except PoapClaim.DoesNotExist:
+            return Response(data,status= status.HTTP_404_NOT_FOUND)
+
+        if request.method == 'GET':
+            
+            serializer =  PoapClaimSerializer(poap)
+            data['status']='success'
+            data['msg'] ='found poap'
+            data['data'] = serializer.data
+
+            logger.info("--------------")
+            logger.info(data)
+            logger.info(dir(data))
+
+            return Response(data, status=status.HTTP_200_OK)
+            
+
+        return Response(data, status=status.HTTP_400_BAD_REQUEST)
+    
+    except Exception as e:
+        return Response(data,status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+@api_view(['POST',])
+def receive_poap_view(request):
+    print("= receive_poap_view =")
+    
+    logger.info("===== receive_poap_view =====")
+    logger.info(request.data['poapId'])
+    logger.info(request.data['secret'])
+    logger.info(request.data['address'])
+  
     try:
-        poapClaim = PoapClaim.objects.get(id=poapClaimId)
-    except PoapClaim.DoesNotExist:
-        return Response(data,status= status.HTTP_404_NOT_FOUND)
 
-    if request.method == 'GET':
-        
-        serializer =  PoapClaimSerializer(poapClaim)
-        data['status']='success'
-        data['msg'] ='found direct poap claim'
-        data['data'] = serializer.data
-        return Response(data, status=status.HTTP_200_OK)
+        data={}
 
-    return Response(data, status=status.HTTP_400_BAD_REQUEST)
+        if request.method == 'POST':
+
+            if not request.data['poapId'] or not request.data['secret'] or not request.data['address']:
+                return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+
+            try:
+                poap = PoapClaim.objects.get(id=request.data['poapId'])
+            except PoapClaim.DoesNotExist:
+                return Response(data,status= status.HTTP_404_NOT_FOUND)
+            
+            poapReciptQuerySet = PoapReceipt.objects.filter(claim = poap, address= request.data['address'])          
+
+            if(not Web3.isAddress(request.data['address'])):
+                data['status']='failed'
+                data['msg']="올바르지 않은 주소입니다"
+
+                return Response(data, status=status.HTTP_200_OK)   
+
+            if(request.data['secret'] != poap.secret):
+                data['status']='failed'
+                data['msg']="잘못된 인증 코드입니다"
+
+                return Response(data, status=status.HTTP_200_OK)
+
+            if(len(poapReciptQuerySet) == 1):
+                data['status']='failed'
+                data['msg']="이미 POAP을 받으셨습니다"
+
+                return Response(data, status=status.HTTP_200_OK)
+            
+            if(len(poapReciptQuerySet) > 1):
+                data['status']='failed'
+                data['msg']="문제가 발생했습니다"
+
+                return Response(data, status=status.HTTP_200_OK)
+
+            address = request.data['address']
+
+            receipt = sendPoap(address, poap)
+
+            # receipt.transactionHash is HexBytes like below
+            # b"\x07\xb8x\x11\xb1'\x0c\xcb\x17\xe8\xfe,=\n\x94\xf5\x1e\xdfs\xb1\xd0\x99\xa1Ht\x89\xd9\xc2G\xb7y\xad"
+            # receipt.transactionHash.hex() => '07b87811b1270ccb17e8fe2c3d0a94f51edf73b1d099a1487489d9c247b779ad'
+            directPoapReceipt = PoapReceipt(claim = poap, address= address, txHash='0x'+receipt.transactionHash.hex(), blockNumber = receipt.blockNumber)
+            directPoapReceipt.save()
+
+            data['status']='success'
+            data['msg']="지갑으로 POAP을 보내드렸습니다"
+
+            return Response(data, status=status.HTTP_200_OK)
+            
+
+        return Response(data, status=status.HTTP_400_BAD_REQUEST)
+    
+    except Exception as e:
+        print("===========e =========")
+        print(e)
+        print(dir(e))
+
+         # Get current system exception
+        ex_type, ex_value, ex_traceback = sys.exc_info()
+
+        # Extract unformatter stack traces as tuples
+        trace_back = traceback.extract_tb(ex_traceback)
+
+        # Format stacktrace
+        stack_trace = list()
+
+        for trace in trace_back:
+            stack_trace.append("File : %s , Line : %d, Func.Name : %s, Message : %s" % (trace[0], trace[1], trace[2], trace[3]))
+
+        print("Exception type : %s " % ex_type.__name__)
+        print("Exception message : %s" %ex_value)
+        print("Stack trace : %s" %stack_trace)
+        return Response(data,status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 
 
@@ -782,6 +893,7 @@ def sendPoap(address, poapClaim):
     nonce = w3.eth.getTransactionCount(wallet_address)
 
     #build a transaction in a dictionary
+    # old stable value is 2000000, 50
     options = {
         'nonce': nonce,
         'gas': 2000000,
@@ -822,6 +934,7 @@ def setUriPoap(poapClaim,metaCid):
     nonce = w3.eth.getTransactionCount(wallet_address)
 
     #build a transaction in a dictionary
+    # old stable value is 2000000, 50
     options = {
         'nonce': nonce,
         'gas': 2000000,
@@ -1477,7 +1590,7 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
     logger.info(content)
     
     msg.set_content(content, subtype='html')
-    msg['Subject'] = "Hello Underworld from Python Gmail!"
+    msg['Subject'] = "{howMany}개의 POAP이 전송되었습니다 - stellaiam".format(howMany=howMany)
     msg['From'] = email_address
     msg['To'] = poapClaim.email
 
@@ -2014,11 +2127,66 @@ table, td { color: #000000; } #u_body a { color: #0000ee; text-decoration: under
       )
 
     logger.info(content)
+
+
+    # Data to be encoded
+    data = "{website}receive_poap/{id}".format(website=config('WEBSITE'), id = poapClaim.id)
     
-    msg.set_content(content, subtype='html')
-    msg['Subject'] = "Hello Underworld from Python Gmail!"
-    msg['From'] = email_address
-    msg['To'] = poapClaim.email
+    # Encoding data using make() function
+    img = qrcode.make(data)
+      
+    # Saving as an image file
+    img.save('./media/qr_imgs/{id}_poap_qrcode.png'.format(id=poapClaim.id))
+
+    logger.info(img)
+    logger.info("img img img img img img img")
+    logger.info(dir(img))
+
+    
+    # msg.set_content(content, subtype='html')
+    # msg['Subject'] = "{howMany}개의 POAP이 전송되었습니다 - stellaiam".format(howMany=howMany)
+    # msg['From'] = email_address
+    # msg['To'] = poapClaim.email
+    
+
+
+
+
+
+
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "{howMany}개의 POAP이 전송되었습니다 - stellaiam".format(howMany=howMany)
+    msg["From"] = email_address
+    msg["To"] = poapClaim.email
+    filename = "poap_qrcode.png"
+
+    part = MIMEText(content, "html")
+    msg.attach(part)
+
+    # Add Attachment
+    with open('./media/qr_imgs/{id}_poap_qrcode.png'.format(id=poapClaim.id), "rb") as attachment:
+        part = MIMEBase("application", "octet-stream")
+        part.set_payload(attachment.read())
+      
+    encoders.encode_base64(part)
+
+    # Set mail headers
+    part.add_header(
+        "Content-Disposition",
+        "attachment", filename= filename
+    )
+    msg.attach(part)
+
+    
+
+
+
+
+
+
+
+
 
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:

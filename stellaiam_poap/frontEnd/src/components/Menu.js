@@ -182,8 +182,16 @@ const Menu = (props)=>{
     };
 
     const getWalletBtn = (provider)=>{
-        console.log("getWalletBtn called");
-        console.log("provider : ",provider);
+        // console.log("getWalletBtn called");
+        // console.log("provider : ",provider);
+        console.log("window.location.pathname : ",window.location.pathname);
+
+        const path = window.location.pathname.split("/");
+
+        // when user receive they don't need to connect wallet
+        if(path[1] == "receive_poap"){
+            return(<></>);
+        }
 
         if(provider){
 

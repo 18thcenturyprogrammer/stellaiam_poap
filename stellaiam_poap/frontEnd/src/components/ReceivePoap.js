@@ -6,14 +6,61 @@ import { Table,Button,Checkbox ,Icon,Form, TextArea, Message,Item,List,Image,Com
 
 import Menu from "./Menu";
 import Footer from "./Footer";
+import { time_ago } from "./JyUtils";
+
 
 const ReceivePoap = ()=>{
+    require('dotenv').config;
     let { id } = useParams(); 
 
+    const [poap, setPoap] = useState(null);
     const [secret, setSecret] = useState("");
     const [address, setAddress] = useState("");
-
+    
     const [isProcess, setIsProcess] = useState(false);
+
+    useEffect(()=>{
+
+        const requestOptions = {
+            method: 'GET',
+            headers: { 
+                "Access-Control-Allow-Origin": "http://127.0.0.1:8000/*",
+                'Accept': 'application/json, text/plain',
+                'Content-Type': 'application/json;charset=UTF-8',
+            },
+            mode:'cors'
+        };
+
+        // pass query params ref) https://stackoverflow.com/a/37230594
+        fetch(`${process.env.REACT_APP_WEBSITE}api/get_poap/${id}`,requestOptions)
+        .then((response)=>{
+            console.log("response obj : ");
+            console.dir(response);
+
+            if(response.ok){
+
+                
+                return response.json();
+            }else{
+                if(response.status == 404 ){
+                    instantMsg("Not found","normal");
+                }else{
+                    instantMsg("Failed to bring contents","warning");
+                    throw Error("Failed communication with server for getting list of contents");
+                }
+            }
+        }).then((data)=>{
+
+            console.log("data.data",data.data)
+            console.log("created : ",time_ago(data.data.created))
+
+
+            setPoap(data.data)
+            
+        });
+
+
+    },[]);
 
     const onChangeSecret = (event)=>{
         const value = event.target.value;
@@ -35,48 +82,55 @@ const ReceivePoap = ()=>{
     const onClickOkBtn = ()=>{
         console.log("onClickOkBtn called");
 
+        setIsProcess(true);
 
         if(secret && address){
 
             if(isEthereumAddress(address)){
+                const data = new FormData();
+
+                data.append("poapId",id);
                 data.append("secret",secret);
                 data.append("address",address);
                 
-                // const requestOptions = {
-                //     method: 'POST',
-                //     headers: { 
-                //         'Accept': 'application/json, text/plain'
-                //     },
-                //     body: data,
-                //     mode:'cors'
-                // };
+                const requestOptions = {
+                    method: 'POST',
+                    headers: { 
+                        'Accept': 'application/json, text/plain'
+                    },
+                    body: data,
+                    mode:'cors'
+                };
     
-                // fetch("http://127.0.0.1:8000/api/create_single_direct_poap_claim/",requestOptions)
-                // .then((response)=>{
-                //     console.log("response obj : ");
-                //     console.dir(response);
+                fetch(`${process.env.REACT_APP_WEBSITE}api/receive_poap/`,requestOptions)
+                .then((response)=>{
+                    console.log("response obj : ");
+                    console.dir(response);
     
-                //     if(response.ok){
-                //         return response.json();
-                //     }else{
-                //         setIsProcess(false);
-                //         instantMsg("서버와의 통신에 문제가 있습니다","warning");
+                    if(response.ok){
+                        return response.json();
+                    }else{
+                        setIsProcess(false);
+                        instantMsg("서버와의 통신에 문제가 있습니다","warning");
                     
-                //         throw Error("Failed communication with server for saving content");
-                //     }
-                // }).then((data)=>{
+                        throw Error("Failed communication with server for saving content");
+                    }
+                }).then((data)=>{
     
-                //     console.log("data",data);
+                    console.log("data",data);
+    
+                    console.log("Success saved content in server");
+
+                    if(data.status == "success"){
+                        instantMsg(data.msg,"normal");
+                    }else{
+                        instantMsg(data.msg,"warning");
+                    }
+    
+                    setIsProcess(false);
+                    cleanStates();
                     
-                //     console.log(data.data.id);
-    
-                //     console.log("Success saved content in server");
-    
-                //     setIsProcess(false);
-                //     setModalOpen(true)
-                //     setClaimId(data.data.id);
-                    
-                // });
+                });
 
             }else{
                 setIsProcess(false);
@@ -95,6 +149,14 @@ const ReceivePoap = ()=>{
         cleanStates();
     };
 
+    const onClickOpensea = ()=>{
+        console.log("onClickOpensea called");
+        console.log(process.env.REACT_APP_OPENSEA_URL);
+        console.log(process.env.REACT_APP_STELLAIAM_POAP_CONTRACT_ADDRESS);
+
+        window.open(`${process.env.REACT_APP_OPENSEA_URL}${process.env.REACT_APP_STELLAIAM_POAP_CONTRACT_ADDRESS}/${id}`, '_blank', 'noreferrer');
+    };
+
 
     const instantMsg = (msg, type)=>{
 
@@ -106,6 +168,43 @@ const ReceivePoap = ()=>{
             case "warning":
                 toast.error(msg,{duration: 8000});
         }
+    };
+
+    const getCard = ()=>{
+        return(
+            <>
+
+                <Table.Row>
+                    <Table.Cell>
+                    <div className="ui cards">
+                        <div className="ui centered card">
+                            <div className="image">
+                                <img src={process.env.REACT_APP_WEBSITE+poap.image}/>
+                            </div>
+                            <div className="extra content">
+                                <a>
+                                <i className="clock icon"></i>
+                                발행일 : {time_ago(poap.created)}
+                                </a>
+                                <br/>
+                                <a>
+                                <i className="user icon"></i>
+                                발행자 : {poap.email}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    </Table.Cell>
+                    <Table.Cell id="poap_data_cell">
+                        <h2>제목 : {poap.title}</h2>
+                        <h4>내용 : {poap.description}</h4>
+                        <br/>
+                        <Button size='big' className="centered" color='yellow' onClick={onClickOpensea}>Opensea에서 확인하기</Button>
+                    </Table.Cell>
+                    
+                </Table.Row>
+            </>
+        );
     };
 
 
@@ -124,8 +223,9 @@ const ReceivePoap = ()=>{
             
 
             <div id="body_component" className="ui centered one column grid">
+
                 
-                <div className="column row">
+                <div className="row">
                     <div className="column">
 
 
@@ -140,6 +240,7 @@ const ReceivePoap = ()=>{
                                 </Table.HeaderCell>
                                 
                             </Table.Row>
+                            {poap && getCard()}
                         </Table.Header>
 
                         <Table.Body>

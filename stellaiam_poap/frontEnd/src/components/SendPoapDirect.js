@@ -200,7 +200,7 @@ const SendPoapDirect = ()=>{
             // single address
 
             setAddressFile(null);
-            setHowMany(0);
+            setHowMany(1);
         }
     };
 
@@ -336,7 +336,7 @@ const SendPoapDirect = ()=>{
                                 mode:'cors'
                             };
                 
-                            fetch("http://127.0.0.1:8000/api/create_single_direct_poap_claim/",requestOptions)
+                            fetch(`${process.env.REACT_APP_WEBSITE}api/create_single_direct_poap_claim/`,requestOptions)
                             .then((response)=>{
                                 console.log("response obj : ");
                                 console.dir(response);
@@ -386,7 +386,7 @@ const SendPoapDirect = ()=>{
                                 mode:'cors'
                             };
                 
-                            fetch("http://127.0.0.1:8000/api/create_multiple_direct_poap_claim/",requestOptions)
+                            fetch(`${process.env.REACT_APP_WEBSITE}api/create_multiple_direct_poap_claim/`,requestOptions)
                             .then((response)=>{
                                 console.log("response obj : ");
                                 console.dir(response);
@@ -418,7 +418,7 @@ const SendPoapDirect = ()=>{
                             // howMany is not positive number
 
                             setIsProcess(false);
-                            setHowMany(0);
+                            setHowMany(1);
                             instantMsg("명수는 양수만 가능합니다","warning");
                         }
                         
@@ -484,8 +484,9 @@ const SendPoapDirect = ()=>{
 
         // if i follow eip 1559, i can't override gasprice option
         // maxFeePerGas must be higher than maxPriorityFeePerGas
-        const mulMaxFeePerGas = gasData.maxFeePerGas.mul(BigNumber.from(50));
-        const mulMaxPriorityFeePerGas = gasData.maxPriorityFeePerGas.mul(BigNumber.from(40));
+        // 50, 40 old stable value
+        const mulMaxFeePerGas = gasData.maxFeePerGas.mul(BigNumber.from(10));
+        const mulMaxPriorityFeePerGas = gasData.maxPriorityFeePerGas.mul(BigNumber.from(10));
                
         
         const decimals = 15;
@@ -550,7 +551,7 @@ const SendPoapDirect = ()=>{
             mode:'cors'
         };
 
-        fetch("http://127.0.0.1:8000/api/public_paid_direct_poap_claim/",requestOptions)
+        fetch(`${process.env.REACT_APP_WEBSITE}api/public_paid_direct_poap_claim/`,requestOptions)
         .then((response)=>{
             console.log("response obj : ");
             console.dir(response);
