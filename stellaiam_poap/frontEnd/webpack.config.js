@@ -33,7 +33,7 @@ module.exports = (env, argv)=>{
     entry: "./src/index.js",
     output: {
       path: path.resolve(__dirname, "./assets/for_react/js"),
-      filename: "[name].js",
+      filename: "[name].js"
     },
     module: {
       rules: [
@@ -49,7 +49,7 @@ module.exports = (env, argv)=>{
             }
           },
         },
-        { test: /\.css$/, use: [ 'style-loader', 'css-loader' ] },
+        { test: /\.css$/, use: [ 'style-loader', 'css-loader' ] }
       ],
     },
     optimization: {
@@ -58,7 +58,7 @@ module.exports = (env, argv)=>{
     plugins: [
       new webpack.DefinePlugin({
         "process.env":JSON.stringify(processEnv)
-      }),
+      })
     ],
     
     resolve: {

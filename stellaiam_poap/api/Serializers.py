@@ -30,7 +30,4 @@ class PoapClaimSerializer(serializers.ModelSerializer):
         model = PoapClaim
         fields =['id','email','title','description','image','address','howMany','imgCid', 'metaCid','created', 'secret', 'paidTxHash', 'uriTxHash', 'whoPaid', 'updated', 'isPaid']
 
-        # # make it not required
-        # # ref) https://stackoverflow.com/a/46842288
-        # extra_kwargs = {'secret': {'required': False}}
-   
+       

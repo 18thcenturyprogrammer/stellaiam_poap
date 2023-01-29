@@ -10,7 +10,7 @@ import LeftImgFeature from "./LeftImgFeature";
 import LeftImgFeature2 from "./LeftImgFeature2";
 import RightImgFeature from "./RightImgFeature";
 import PriceCards from "./PriceCards";
-import Faq from "./faq";
+import Faq from "./Faq";
 import Footer from "./Footer";
 
 const Main = ()=>{
@@ -41,7 +41,7 @@ const Main = ()=>{
 
             <h2 className="ui horizontal divider header">
                 <i className="tags icon text-primary"></i>
-                &nbsp; Plans &nbsp;
+                &nbsp; 가격 &nbsp;
                 <i className="tags text-primary"></i>
             </h2>
 

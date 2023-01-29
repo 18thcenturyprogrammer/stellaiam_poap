@@ -39,11 +39,10 @@ const Footer = ()=>{
                     <MDBRow className='mt-3'>
                         <MDBCol md='3' lg='4' xl='3' className='mx-auto mb-4'>
                         <h6 className='text-uppercase fw-bold mb-4'>
-                            <MDBIcon color='light' icon='gem' className='me-3' />
                             Stellaiam
                         </h6>
                         <p>
-                            스텔라 아임은 블럭체인을 기반으로 하며 사용자들이 쉽게 POAP, SBT&#40;soul bound token&#41; 발행, 관리하도록 돕는 플랫폼을 제공합니다
+                            스텔라아임은 블럭체인을 기반으로 하며 사용자들이 쉽게 POAP proof of attendance protocol 발행, 관리하도록 돕는 플랫폼을 제공합니다
                         </p>
                         </MDBCol>
 
@@ -51,46 +50,42 @@ const Footer = ()=>{
                         <h6 className='text-uppercase fw-bold mb-4'>Products</h6>
                         <p>
                             <a href='#!' className='text-reset'>
-                            Angular
+                            <i className="rocket icon"></i>초간편으로 POAP 보내기
                             </a>
                         </p>
                         <p>
                             <a href='#!' className='text-reset'>
-                            React
+                            <i className="address book icon"></i>주소록에 있는 사람에게 한방에 쉽게 보내기
                             </a>
                         </p>
                         <p>
                             <a href='#!' className='text-reset'>
-                            Vue
-                            </a>
-                        </p>
-                        <p>
-                            <a href='#!' className='text-reset'>
-                            Laravel
+                            <i className="qrcode icon"></i>QR코드로 사람들 불러 모아 보내기 
                             </a>
                         </p>
                         </MDBCol>
 
                         <MDBCol md='3' lg='2' xl='2' className='mx-auto mb-4'>
-                        <h6 className='text-uppercase fw-bold mb-4'>Useful links</h6>
+                        
+                        <h6 className='text-uppercase fw-bold mb-4'><i className="paint brush icon"></i> 유용한 디자인 툴박스</h6>
                         <p>
-                            <a href='#!' className='text-reset'>
-                            Pricing
+                            <a  target="_blank" href='https://labs.openai.com' className='text-reset'>
+                            Dalle-e 2 
                             </a>
                         </p>
                         <p>
-                            <a href='#!' className='text-reset'>
-                            Settings
+                            <a  target="_blank" href='https://logomakr.com/' className='text-reset'>
+                            Logomakr.com
                             </a>
                         </p>
                         <p>
-                            <a href='#!' className='text-reset'>
-                            Orders
+                            <a target="_blank" href='https://goodbrief.io/' className='text-reset'>
+                            GoodBrief
                             </a>
                         </p>
                         <p>
-                            <a href='#!' className='text-reset'>
-                            Help
+                            <a href='https://www.logomaker.net/' className='text-reset'>
+                            Logomaker.net
                             </a>
                         </p>
                         </MDBCol>
