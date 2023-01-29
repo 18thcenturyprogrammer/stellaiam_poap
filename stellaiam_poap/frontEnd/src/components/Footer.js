@@ -100,12 +100,7 @@ const Footer = ()=>{
                             <MDBIcon color='light' icon='envelope' className='me-3' />
                             18thcenturyprogrammer@gmail.com
                         </p>
-                        <p>
-                            <MDBIcon color='light' icon='phone' className='me-3' /> + 01 234 567 88
-                        </p>
-                        <p>
-                            <MDBIcon color='light' icon='print' className='me-3' /> + 01 234 567 89
-                        </p>
+                        
                         </MDBCol>
                     </MDBRow>
                     </MDBContainer>
