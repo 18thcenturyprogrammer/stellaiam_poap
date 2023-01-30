@@ -179,7 +179,7 @@ const ReceivePoap = ()=>{
                     <div className="ui cards">
                         <div className="ui centered card">
                             <div className="image">
-                                <img src={process.env.REACT_APP_WEBSITE+poap.image}/>
+                                <img src={process.env.REACT_APP_WEBSITE+poap.image.slice(1)}/>
                             </div>
                             <div className="extra content">
                                 <a>

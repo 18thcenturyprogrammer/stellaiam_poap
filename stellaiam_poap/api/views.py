@@ -571,7 +571,7 @@ def public_paid_direct_poap_claim_view(request):
         if(fileExtension == '.csv'):
           addressDf = pd.read_csv(poapClaim.address, sep=',')
         else:
-          addressDf = pd.read_excel(poapClaim.address)
+          addressDf = pd.read_excel(poapClaim.address,engine='openpyxl')
 
         logger.info("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
         logger.info(addressDf)
@@ -977,6 +977,10 @@ def pinImg(claim):
         'pinataMetadata': '{"name": "poap_img_'+str(claim['id'])+'", "keyvalues": {"claim_id": "'+str(claim['id'])+'","email":"'+claim['email']+'","title":"'+claim['title']+'","description":"'+claim['description']+'","howMany":"'+str(claim['howMany'])+'","created":"'+claim['created']+'","imgIpfsCreated":"'+ timezone.now().isoformat()+'"}}'
         }
 
+    print("payload")
+    print(payload)
+    
+
 
     files=[
         ('file',('b.png',open(media_root +claim['image'].replace("/media",""),'rb')))
@@ -997,6 +1001,12 @@ def pinImg(claim):
     print(dir(response))
 
     jsonObj = json.loads(response.text)
+
+    print("jsonObj")
+    print(jsonObj)
+    print(dir(jsonObj))
+
+
     return jsonObj['IpfsHash']
     
 
@@ -1031,6 +1041,12 @@ def pinMetadata(poapClaim):
     response = requests.request("POST", url, headers=headers, data=payload)
 
     jsonObj = json.loads(response.text)
+
+
+    print("jsonObj")
+    print(jsonObj)
+    print(dir(jsonObj))
+
     return jsonObj['IpfsHash'] 
 
 
@@ -1072,7 +1088,7 @@ def sendEmail(poapClaim,sentCounter):
     facebook_logo = 'http://jacob-yo.net/wp-content/uploads/2023/01/facebook.png'
     twitter_logo = 'http://jacob-yo.net/wp-content/uploads/2023/01/twitter.png'
     instagram_logo ='http://jacob-yo.net/wp-content/uploads/2023/01/instagram.png' 
-    poap_img = poapClaim.image 
+    poap_img = config('WEBSITE')+"media/"+poapClaim.image.name   
     howMany = sentCounter
     paidTxHash = poapClaim.paidTxHash
     whoPaid = poapClaim.whoPaid
@@ -1611,7 +1627,7 @@ def sendEmail_non_direct(poapClaim):
     facebook_logo = 'http://jacob-yo.net/wp-content/uploads/2023/01/facebook.png'
     twitter_logo = 'http://jacob-yo.net/wp-content/uploads/2023/01/twitter.png'
     instagram_logo ='http://jacob-yo.net/wp-content/uploads/2023/01/instagram.png' 
-    poap_img = poapClaim.image 
+    poap_img = config('WEBSITE')+"media/"+poapClaim.image.name  
     howMany = poapClaim.howMany
     paidTxHash = poapClaim.paidTxHash
     whoPaid = poapClaim.whoPaid

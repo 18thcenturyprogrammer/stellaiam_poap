@@ -475,7 +475,7 @@ const SendPoapDirect = ()=>{
         const stellaiamPoapContract = new ethers.Contract(contractAddress,abi,provider);
 
         // Prompt user for account connections
-        await provider.send("eth_requestAccounts", []);
+        // await provider.send("eth_requestAccounts", []);
         const signer = provider.getSigner();
 
         // const connectedWallet = signer.connect(provider);
