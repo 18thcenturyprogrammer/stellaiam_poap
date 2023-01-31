@@ -972,9 +972,26 @@ def pinImg(claim):
 
     url = "https://api.pinata.cloud/pinning/pinFileToIPFS"
 
+    pinataMetadata = {}
+
+    pinataMetadata['name'] = "poap_img_"+str(claim['id'])
+
+    keyvalues = {}
+    keyvalues['claim_id'] = claim['id']
+    keyvalues['email'] = claim['email']
+    keyvalues['title'] = claim['title']
+    keyvalues['description'] = claim['description']
+    keyvalues['howMany'] = claim['howMany']
+    keyvalues['created'] = claim['created']
+    keyvalues['created'] = claim['created']
+    keyvalues['imgIpfsCreated'] = timezone.now().isoformat()
+
+    pinataMetadata['keyvalues'] = keyvalues
+    
+
     payload={
         'pinataOptions': '{"cidVersion": 1}',
-        'pinataMetadata': '{"name": "poap_img_'+str(claim['id'])+'", "keyvalues": {"claim_id": "'+str(claim['id'])+'","email":"'+claim['email']+'","title":"'+claim['title']+'","description":"'+claim['description']+'","howMany":"'+str(claim['howMany'])+'","created":"'+claim['created']+'","imgIpfsCreated":"'+ timezone.now().isoformat()+'"}}'
+        'pinataMetadata': json.dumps(pinataMetadata)
         }
 
     print("payload")
@@ -998,7 +1015,25 @@ def pinImg(claim):
 
     print("response")
     print(response)
-    print(dir(response))
+    print("=====================")
+    print(response.json)
+    print("=====================")
+    print("response.text")
+    print(response.text)
+    print("=====================")
+    print("response.raw")
+    print(response.raw)
+    print("=====================")
+    print("response.status_code")
+    print(response.status_code)
+    print("=====================")
+    print("response.request")
+    print(response.request)
+    print("=====================")
+    print("response.url")
+    print(response.url)
+    
+    # print(dir(response))
 
     jsonObj = json.loads(response.text)
 
