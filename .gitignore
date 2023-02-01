@@ -1,0 +1,45 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+
+
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+
+*.rar
+*.env
+node_modules
+server_side
+
+.env
+.rar
+# all .env file ignored
+.env.*
+
+*.sqlite3
+/stellaiam_poap/frontEnd/assets
+/stellaiam_poap/frontEnd/assets_copied_for_django
+/stellaiam_poap/frontEnd/node_modules
+/venv
+/stellaiam_poap/stellaiam_poap/settings.py
+
