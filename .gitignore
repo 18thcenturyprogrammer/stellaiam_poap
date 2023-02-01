@@ -41,5 +41,5 @@ server_side
 /stellaiam_poap/frontEnd/assets_copied_for_django
 /stellaiam_poap/frontEnd/node_modules
 /venv
-
+/stellaiam_poap/stellaiam_poap/settings.py
 
