@@ -33,7 +33,9 @@ const Menu = (props)=>{
             // user has metamask
 
             console.log("window.ethereum");
-            provider = window.ethereum;
+            // provider = window.ethereum;
+
+            provider = window.ethereum.providers.find((provider) => provider.isMetaMask);
         } else if (window.web3) {
             // user has different wallet
 
@@ -189,7 +191,7 @@ const Menu = (props)=>{
         const path = window.location.pathname.split("/");
 
         // when user receive they don't need to connect wallet
-        if(path[1] == "receive_poap"){
+        if(path[1] == "" || path[1] == "receive_poap" || path[1] == "create_poap"){
             return(<></>);
         }
 

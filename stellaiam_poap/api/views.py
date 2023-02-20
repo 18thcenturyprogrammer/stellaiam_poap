@@ -881,7 +881,8 @@ def get_extension_test_view(request):
 def sendPoap(address, poapClaim):
     
     # get secret ref) https://stackoverflow.com/a/61437799
-    wallet_address = config('WALLET_ADDRESS')
+    # isn't checksum address error ref) https://stackoverflow.com/a/57336340
+    wallet_address = Web3.toChecksumAddress(config('WALLET_ADDRESS'))
     pri_key = config('WALLET_PRI_KEY')
     alchemy_url = config('ALCHEMY_MUMBAI_HTTP_URL')
     mumbai_contract_address = config('MUMBAI_STELLAIAM_POAP_CONTRACT_ADDRESS')
@@ -922,7 +923,8 @@ def sendPoap(address, poapClaim):
 def setUriPoap(poapClaim,metaCid):
     
     # get secret ref) https://stackoverflow.com/a/61437799
-    wallet_address = config('WALLET_ADDRESS')
+    # isn't checksum address error ref) https://stackoverflow.com/a/57336340
+    wallet_address = Web3.toChecksumAddress(config('WALLET_ADDRESS'))
     pri_key = config('WALLET_PRI_KEY')
     alchemy_url = config('ALCHEMY_MUMBAI_HTTP_URL')
     mumbai_contract_address = config('MUMBAI_STELLAIAM_POAP_CONTRACT_ADDRESS')

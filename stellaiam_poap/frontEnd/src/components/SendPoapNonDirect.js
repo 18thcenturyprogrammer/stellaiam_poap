@@ -368,25 +368,32 @@ const SendPoapNonDirect = ()=>{
         
         // send transaction with value
         // ref) https://vsupalov.com/ethers-call-payable-solidity-function/
-        const result = await stellaiamPoapContract.connect(signer).paidByUser(claimId,howMany, options);
-        
-        const txReceipt = await result.wait();
+        const result = await stellaiamPoapContract.connect(signer).paidByUser(claimId,howMany, options).then(async (result)=>{
 
-        console.log("txReceipt : ", txReceipt);
-        console.dir(txReceipt);
+            const txReceipt = await result.wait();
 
-        if(txReceipt.blockNumber){
-            console.log("claim paid successfully");
+            console.log("txReceipt : ", txReceipt);
+            console.dir(txReceipt);
 
-            sendTxToServer(txReceipt.transactionHash)
+            if(txReceipt.blockNumber){
+                console.log("claim paid successfully");
 
-            instantMsg("지불을 완료하셨습니다","normal");
-            
-            cleanStates();
-            
-        }else{
+                sendTxToServer(txReceipt.transactionHash)
+
+                instantMsg("지불을 완료하셨습니다","normal");
+                
+                cleanStates();
+                
+            }else{
+                instantMsg("지불하는 과정에서 문제가 발생했습니다","warning");
+            }
+
+        }).catch((err)=>{
+            console.log("error while doing transaction paidByUser");
             instantMsg("지불하는 과정에서 문제가 발생했습니다","warning");
-        }
+        });
+        
+        
 
         setIsProcess(false);
 

@@ -19,10 +19,15 @@ const ConnectButton = (props)=>{
         let provider;
         if (window.ethereum) {
             console.log("window.ethereum");
-            provider = window.ethereum;
+
+            provider = window.ethereum.providers.find((provider) => provider.isMetaMask);
+
+            // provider = window.ethereum;
         } else if (window.web3) {
             console.log("window.web3");
             provider = window.web3.currentProvider;
+
+            
         } else {
             console.warn("No Ethereum browser detected! Check out MetaMask");
         }
