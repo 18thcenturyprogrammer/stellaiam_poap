@@ -516,8 +516,8 @@ def public_paid_direct_poap_claim_view(request):
         if not request.data['paidTxHash']:
             return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
-        alchemy_url = config('ALCHEMY_MUMBAI_HTTP_URL')
-        contract_address = config('MUMBAI_STELLAIAM_POAP_CONTRACT_ADDRESS')
+        alchemy_url = config('ALCHEMY_HTTP_URL')
+        contract_address = config('STELLAIAM_POAP_CONTRACT_ADDRESS')
         abi = config('ABI')
 
         w3 = Web3(Web3.HTTPProvider(alchemy_url))
@@ -656,8 +656,8 @@ def public_paid_non_direct_poap_claim_view(request):
         if not request.data['paidTxHash']:
             return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
-        alchemy_url = config('ALCHEMY_MUMBAI_HTTP_URL')
-        contract_address = config('MUMBAI_STELLAIAM_POAP_CONTRACT_ADDRESS')
+        alchemy_url = config('ALCHEMY_HTTP_URL')
+        contract_address = config('STELLAIAM_POAP_CONTRACT_ADDRESS')
         abi = config('ABI')
 
         w3 = Web3(Web3.HTTPProvider(alchemy_url))
@@ -884,25 +884,34 @@ def sendPoap(address, poapClaim):
     # isn't checksum address error ref) https://stackoverflow.com/a/57336340
     wallet_address = Web3.toChecksumAddress(config('WALLET_ADDRESS'))
     pri_key = config('WALLET_PRI_KEY')
-    alchemy_url = config('ALCHEMY_MUMBAI_HTTP_URL')
-    mumbai_contract_address = config('MUMBAI_STELLAIAM_POAP_CONTRACT_ADDRESS')
+    alchemy_url = config('ALCHEMY_HTTP_URL')
+    contract_address = config('STELLAIAM_POAP_CONTRACT_ADDRESS')
 
     # alchemy_url = "https://polygon-mumbai.g.alchemy.com/v2/Uud_P7gk4UKBPIgcNN2nV3jsEbhn1R5Z"
     w3 = Web3(Web3.HTTPProvider(alchemy_url))
 
     #get the nonce.  Prevents one from sending the transaction twice
     nonce = w3.eth.getTransactionCount(wallet_address)
+    
+    gas_price = w3.eth.gas_price
 
     #build a transaction in a dictionary
+    # old stable 2000000, 50 is not working , so i changed
     # old stable value is 2000000, 50
+    # options = {
+    #     'nonce': nonce,
+    #     'gas': 3000000,
+    #     'gasPrice': w3.toWei('70', 'gwei')
+    # }
     options = {
         'nonce': nonce,
-        'gas': 2000000,
-        'gasPrice': w3.toWei('50', 'gwei')
+        'gas': 3000000,
+        'gasPrice': gas_price
     }
 
+
     abi = config('ABI')
-    contract_instance = w3.eth.contract(address=mumbai_contract_address, abi=abi)
+    contract_instance = w3.eth.contract(address=contract_address, abi=abi)
 
     tx = contract_instance.functions.mintByOwner(address, poapClaim.id, 1).buildTransaction(options)
 
@@ -912,7 +921,7 @@ def sendPoap(address, poapClaim):
     tx_address = w3.eth.send_raw_transaction(signed_tx.rawTransaction) 
 
     # ref) https://web3py.readthedocs.io/en/v5/web3.eth.html?highlight=receipt#web3.eth.Eth.wait_for_transaction_receipt
-    receipt = w3.eth.wait_for_transaction_receipt(tx_address)
+    receipt = w3.eth.wait_for_transaction_receipt(tx_address,timeout=240)
 
     logger.info("wait_for_transaction_receipt=> receipt : ")
     logger.info(receipt)
@@ -926,25 +935,34 @@ def setUriPoap(poapClaim,metaCid):
     # isn't checksum address error ref) https://stackoverflow.com/a/57336340
     wallet_address = Web3.toChecksumAddress(config('WALLET_ADDRESS'))
     pri_key = config('WALLET_PRI_KEY')
-    alchemy_url = config('ALCHEMY_MUMBAI_HTTP_URL')
-    mumbai_contract_address = config('MUMBAI_STELLAIAM_POAP_CONTRACT_ADDRESS')
+    alchemy_url = config('ALCHEMY_HTTP_URL')
+    contract_address = config('STELLAIAM_POAP_CONTRACT_ADDRESS')
 
     # alchemy_url = "https://polygon-mumbai.g.alchemy.com/v2/Uud_P7gk4UKBPIgcNN2nV3jsEbhn1R5Z"
     w3 = Web3(Web3.HTTPProvider(alchemy_url))
 
+    abi = config('ABI')
+    contract_instance = w3.eth.contract(address=contract_address, abi=abi)
+
     #get the nonce.  Prevents one from sending the transaction twice
     nonce = w3.eth.getTransactionCount(wallet_address)
+    
+    gas_price = w3.eth.gas_price
 
     #build a transaction in a dictionary
+    # old stable 2000000, 50 is not working , so i changed
     # old stable value is 2000000, 50
+    # options = {
+    #     'nonce': nonce,
+    #     'gas': 3000000,
+    #     'gasPrice': w3.toWei('70', 'gwei')
+    # }
     options = {
         'nonce': nonce,
-        'gas': 2000000,
-        'gasPrice': w3.toWei('50', 'gwei')
+        'gas': 3000000,
+        'gasPrice': gas_price
     }
-
-    abi = config('ABI')
-    contract_instance = w3.eth.contract(address=mumbai_contract_address, abi=abi)
+   
 
     tx = contract_instance.functions.setOneUri(poapClaim.id, "https://gateway.pinata.cloud/ipfs/"+metaCid).buildTransaction(options)
 
@@ -953,8 +971,10 @@ def setUriPoap(poapClaim,metaCid):
     # ref) https://web3py.readthedocs.io/en/v5/web3.eth.html?highlight=sendRawTransaction#web3.eth.Eth.send_raw_transaction
     tx_address = w3.eth.send_raw_transaction(signed_tx.rawTransaction) 
 
+
+
     # ref) https://web3py.readthedocs.io/en/v5/web3.eth.html?highlight=receipt#web3.eth.Eth.wait_for_transaction_receipt
-    receipt = w3.eth.wait_for_transaction_receipt(tx_address)
+    receipt = w3.eth.wait_for_transaction_receipt(tx_address,timeout=240)
 
     logger.info("wait_for_transaction_receipt=> receipt : ")
     logger.info(receipt)
@@ -1129,7 +1149,7 @@ def sendEmail(poapClaim,sentCounter):
     howMany = sentCounter
     paidTxHash = poapClaim.paidTxHash
     whoPaid = poapClaim.whoPaid
-    opensea_link = config('OPENSEA_URL')+config('MUMBAI_STELLAIAM_POAP_CONTRACT_ADDRESS')+"/"+str(poapClaim.id)
+    opensea_link = config('OPENSEA_URL')+config('STELLAIAM_POAP_CONTRACT_ADDRESS')+"/"+str(poapClaim.id)
     star_img = 'http://jacob-yo.net/wp-content/uploads/2023/01/star.png'
 
 
@@ -1668,7 +1688,7 @@ def sendEmail_non_direct(poapClaim):
     howMany = poapClaim.howMany
     paidTxHash = poapClaim.paidTxHash
     whoPaid = poapClaim.whoPaid
-    opensea_link = config('OPENSEA_URL')+config('MUMBAI_STELLAIAM_POAP_CONTRACT_ADDRESS')+"/"+str(poapClaim.id)
+    opensea_link = config('OPENSEA_URL')+config('STELLAIAM_POAP_CONTRACT_ADDRESS')+"/"+str(poapClaim.id)
     star_img = 'http://jacob-yo.net/wp-content/uploads/2023/01/star.png'
 
 

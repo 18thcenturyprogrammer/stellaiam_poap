@@ -20,7 +20,8 @@ import $ from 'jquery';
 import Menu from "./Menu";
 import Footer from "./Footer";
 
-
+const contractAddress = process.env.REACT_APP_STELLAIAM_POAP_CONTRACT_ADDRESS;
+console.log("########contract addres#############", contractAddress);
 
 const SendPoapNonDirect = ()=>{
     require('dotenv').config;
@@ -161,7 +162,7 @@ const SendPoapNonDirect = ()=>{
                         <div class="ui negative message">
                             <i class="close icon"></i>
                             <div class="header">
-                                Mumbai 네트워크가 아닙니다 !!!
+                                Polygon 네트워크가 아닙니다 !!!
                             </div>
                             <p>지원되지 않는 네트워크에서 지불된 토큰은 사라질수 있습니다</p>
                         </div>
@@ -327,6 +328,8 @@ const SendPoapNonDirect = ()=>{
         const abi = process.env.REACT_APP_ABI;
         const contractAddress = process.env.REACT_APP_STELLAIAM_POAP_CONTRACT_ADDRESS;
 
+        console.log("########contract addres#############", contractAddress);
+
         const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
         const stellaiamPoapContract = new ethers.Contract(contractAddress,abi,provider);
 
@@ -341,8 +344,8 @@ const SendPoapNonDirect = ()=>{
         // if i follow eip 1559, i can't override gasprice option
         // maxFeePerGas must be higher than maxPriorityFeePerGas
         // old stable values 50,40
-        const mulMaxFeePerGas = gasData.maxFeePerGas.mul(BigNumber.from(10));
-        const mulMaxPriorityFeePerGas = gasData.maxPriorityFeePerGas.mul(BigNumber.from(10));
+        const mulMaxFeePerGas = gasData.maxFeePerGas.mul(BigNumber.from(5));
+        const mulMaxPriorityFeePerGas = gasData.maxPriorityFeePerGas.mul(BigNumber.from(3));
                
         
         const decimals = 15;
@@ -547,7 +550,7 @@ const SendPoapNonDirect = ()=>{
                             </Table.Row>
                             <Table.Row>
                                 <Table.Cell colSpan="2">
-                                POAP 디자인 : <input className="file" accept="image/*" id='image' type="file" onChange={onImageChange}/>
+                                POAP 디자인 &#58; <input className="file" accept="image/*" id='image' type="file" onChange={onImageChange}/>
                                 </Table.Cell>
                             </Table.Row>
                             <Table.Row>

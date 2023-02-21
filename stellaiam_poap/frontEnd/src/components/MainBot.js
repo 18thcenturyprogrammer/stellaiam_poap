@@ -32,8 +32,8 @@ const checkClaimEvent = async ()=>{
 
     const abi = process.env.ABI;    
 
-    // const providerUrl = process.env.ALCHEMY_MUMBAI_WEB_SOCKET;
-    const providerUrl = process.env.ALCHEMY_MUMBAI_WEB_SOCKET;
+    // const providerUrl = process.env.ALCHEMY_WEB_SOCKET;
+    const providerUrl = process.env.ALCHEMY_WEB_SOCKET;
 
     const provider = new ethers.providers.WebSocketProvider(providerUrl);
     const stellaiamPoapContract = new ethers.Contract(contractAddress,abi,provider);
@@ -138,7 +138,7 @@ const attachGroundSBTmintEventListener = ()=>{
 
     const abi = process.env.ABI;    
 
-    const providerUrl = process.env.ALCHEMY_MUMBAI_WEB_SOCKET;
+    const providerUrl = process.env.ALCHEMY_WEB_SOCKET;
 
     const provider = new ethers.providers.WebSocketProvider(providerUrl);
     const stellaiamNftContract = new ethers.Contract(contractAddress,abi,provider);

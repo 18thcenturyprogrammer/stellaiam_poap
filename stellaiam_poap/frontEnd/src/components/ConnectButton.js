@@ -20,9 +20,13 @@ const ConnectButton = (props)=>{
         if (window.ethereum) {
             console.log("window.ethereum");
 
-            provider = window.ethereum.providers.find((provider) => provider.isMetaMask);
+            if(window.ethereum.providers){
 
-            // provider = window.ethereum;
+                provider = window.ethereum.providers.find((provider) => provider.isMetaMask);
+            }
+
+            provider = window.ethereum;
+
         } else if (window.web3) {
             console.log("window.web3");
             provider = window.web3.currentProvider;

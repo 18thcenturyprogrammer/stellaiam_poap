@@ -35,7 +35,12 @@ const Menu = (props)=>{
             console.log("window.ethereum");
             // provider = window.ethereum;
 
-            provider = window.ethereum.providers.find((provider) => provider.isMetaMask);
+            if(window.ethereum.providers){
+
+                provider = window.ethereum.providers.find((provider) => provider.isMetaMask);
+            }
+
+            provider = window.ethereum;
         } else if (window.web3) {
             // user has different wallet
 
